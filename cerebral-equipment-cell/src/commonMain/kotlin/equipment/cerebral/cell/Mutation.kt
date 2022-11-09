@@ -1,10 +1,17 @@
 package equipment.cerebral.cell
 
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
+
 /**
  * Defer propagation of changes to cells until the end of a code block. All changes to cells in a
  * single mutation won't be propagated to their dependencies until the mutation is completed.
  */
 inline fun mutate(block: () -> Unit) {
+    contract {
+        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+    }
+
     MutationManager.mutate(block)
 }
 

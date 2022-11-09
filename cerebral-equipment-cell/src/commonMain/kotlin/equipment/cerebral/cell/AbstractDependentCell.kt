@@ -12,12 +12,12 @@ internal abstract class AbstractDependentCell<T, Event : ChangeEvent<T>> :
             return unsafeCast(valueInternal)
         }
 
-    final override var changeEvent: Event? = null
+    protected var changeEventInternal: Event? = null
+    final override val changeEvent: Event?
         get() {
             computeValueAndEvent()
-            return field
+            return changeEventInternal
         }
-        protected set
 
     protected abstract fun computeValueAndEvent()
 }

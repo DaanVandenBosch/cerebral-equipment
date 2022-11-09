@@ -2,7 +2,12 @@ package equipment.cerebral.cell
 
 import equipment.cerebral.cell.disposable.use
 import equipment.cerebral.cell.test.CellTestSuite
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Test suite for all [Cell] implementations. There is a subclass of this suite for every [Cell]
@@ -149,12 +154,10 @@ interface CellTests : CellTestSuite {
     fun reflects_changes_without_observers() = test {
         val p = createProvider()
 
-        var old: Snapshot?
+        var old: Snapshot = p.cell.value.snapshot()
 
         repeat(5) {
             // Value should change after emit.
-            old = p.cell.value.snapshot()
-
             p.emit()
 
             val new = p.cell.value.snapshot()
@@ -163,6 +166,8 @@ interface CellTests : CellTestSuite {
 
             // Value should not change when emit hasn't been called since the last access.
             assertEquals(new, p.cell.value.snapshot())
+
+            old = new
         }
     }
 
@@ -306,7 +311,7 @@ interface CellTests : CellTestSuite {
             observedValue = null
 
             val v1 = p.cell.value.snapshot()
-            var v3: Snapshot? = null
+            val v3: Snapshot
 
             mutate {
                 val v2 = p.cell.value.snapshot()
@@ -325,7 +330,6 @@ interface CellTests : CellTestSuite {
 
             val v4 = p.cell.value.snapshot()
 
-            assertNotNull(v3)
             assertNotEquals(v3, v4)
             assertEquals(v4, observedValue)
         }

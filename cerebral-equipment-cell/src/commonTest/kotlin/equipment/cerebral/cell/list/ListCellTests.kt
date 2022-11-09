@@ -273,6 +273,41 @@ interface ListCellTests : CellTests {
         }
     }
 
+    /**
+     * During a mutation, changes should never be removed from the event's change list, they should
+     * only be added. This is because certain cell implementations keep track of which changes
+     * they've already applied by simply storing an index into the change list.
+     */
+    @Test
+    fun during_a_mutation_changes_are_only_appended() = test {
+        val p = createProvider()
+
+        // Repeat 3 times to check that temporary state is always reset.
+        repeat(3) { outerIdx ->
+            mutate {
+                var prevChanges = emptyList<ListChange<Any>>()
+
+                repeat(5) { idx ->
+                    p.addElement()
+                    // Adding an element always causes a change, from this point on we always have a
+                    // change event.
+                    val changes = p.cell.changeEvent!!.changes.toList()
+
+                    assertEquals(prevChanges.size + 1, changes.size, "Repetition $outerIdx, $idx.")
+                    assertEquals(prevChanges, changes.dropLast(1), "Repetition $outerIdx, $idx.")
+
+                    prevChanges = changes
+                }
+            }
+        }
+    }
+
+    private fun <E> changeEquals(c1: ListChange<E>, c2: ListChange<E>): Boolean =
+        c1.index == c2.index &&
+                c1.prevSize == c2.prevSize &&
+                c1.removed == c2.removed &&
+                c1.inserted == c2.inserted
+
     interface Provider : CellTests.Provider {
         override val cell: ListCell<Any>
 

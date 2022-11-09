@@ -17,7 +17,7 @@ internal class DependentCell<T>(
         if (!valid) {
             val newValue = compute()
             valueInternal = newValue
-            changeEvent = ChangeEvent(newValue)
+            changeEventInternal = ChangeEvent(newValue)
             valid = dependents.isNotEmpty()
         }
     }

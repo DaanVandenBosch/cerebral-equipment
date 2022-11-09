@@ -37,17 +37,13 @@ internal abstract class AbstractFlatteningDependentCell
                 computedCell = unsafeAssertNotNull(this.computedCell)
             }
 
-            val newValue = transformNewValue(computedCell.value)
-            valueInternal = newValue
-            changeEvent = createEvent(oldValue, newValue)
+            updateValueAndEvent(oldValue, computedCell.value)
             // We stay invalid if we have no dependents to ensure our value is always recomputed.
             valid = hasDependents
         }
     }
 
-    protected abstract fun transformNewValue(value: T): T
-
-    protected abstract fun createEvent(oldValue: T?, newValue: T): Event
+    protected abstract fun updateValueAndEvent(oldValue: T?, newValue: T)
 
     override fun addDependent(dependent: Dependent) {
         super.addDependent(dependent)
