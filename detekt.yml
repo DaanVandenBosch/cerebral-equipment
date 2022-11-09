@@ -1,0 +1,9 @@
+complexity:
+  active: false
+
+formatting:
+  maxLineLength: 100
+
+style:
+  MaxLineLength:
+    maxLineLength: 100

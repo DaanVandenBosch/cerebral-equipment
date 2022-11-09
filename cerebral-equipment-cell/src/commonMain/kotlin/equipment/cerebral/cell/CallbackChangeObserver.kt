@@ -1,0 +1,32 @@
+package equipment.cerebral.cell
+
+import equipment.cerebral.cell.disposable.TrackedDisposable
+
+/**
+ * Calls [callback] when [dependency] changes.
+ */
+internal class CallbackChangeObserver<T, E : ChangeEvent<T>>(
+    private val dependency: Cell<T>,
+    // We don't use ChangeObserver<T> because of type system limitations. It would break e.g.
+    // AbstractListCell.observeListChange.
+    private val callback: (E) -> Unit,
+) : TrackedDisposable(), LeafDependent {
+
+    init {
+        dependency.addDependent(this)
+    }
+
+    override fun dispose() {
+        dependency.removeDependent(this)
+        super.dispose()
+    }
+
+    override fun dependencyInvalidated(dependency: Dependency<*>) {
+        MutationManager.invalidated(this)
+    }
+
+    override fun dependenciesChanged() {
+        // See comment above callback property to understand why this is safe.
+        dependency.changeEvent?.let(unsafeCast<(ChangeEvent<T>) -> Unit>(callback))
+    }
+}

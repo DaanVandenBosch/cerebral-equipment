@@ -1,0 +1,44 @@
+package equipment.cerebral.cell.list
+
+import equipment.cerebral.cell.Cell
+import equipment.cerebral.cell.CellWithDependenciesTests
+import equipment.cerebral.cell.cell
+import equipment.cerebral.cell.map
+
+/**
+ * In these tests the list dependency of the [FilteredListCell] changes.
+ */
+@Suppress("unused")
+class FilteredListCellListDependencyEmitsTests : ListCellTests, CellWithDependenciesTests {
+    override fun createListProvider(empty: Boolean) = object : ListCellTests.Provider {
+        // The list cell changes.
+        private val dependencyCell =
+            SimpleListCell(if (empty) mutableListOf(5) else mutableListOf(5, 10))
+
+        override val cell =
+            FilteredListCell(
+                list = dependencyCell,
+                // Neither the predicate cell nor the predicate results change.
+                predicate = cell { cell(it % 2 == 0) },
+            )
+
+        override fun addElement() {
+            dependencyCell.add(4)
+        }
+    }
+
+    override fun createWithDependencies(
+        dependency1: Cell<Int>,
+        dependency2: Cell<Int>,
+        dependency3: Cell<Int>,
+    ): Cell<Any> =
+        FilteredListCell(
+            list = dependency1.mapToList { listOf(it) },
+            predicate = dependency2.map { value2 ->
+                fun predicate(element: Int): Cell<Boolean> =
+                    dependency3.map { value3 -> (element % 2) == ((value2 + value3) % 2) }
+
+                ::predicate
+            },
+        )
+}
