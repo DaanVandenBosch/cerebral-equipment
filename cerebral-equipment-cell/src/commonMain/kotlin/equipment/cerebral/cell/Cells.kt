@@ -59,7 +59,9 @@ fun <T1, T2> observe(
     c2: Cell<T2>,
     observer: (T1, T2) -> Unit,
 ): Disposable {
-    val disposable = CallbackObserver(c1, c2) { observer(c1.value, c2.value) }
+    val disposable = CallbackObserver(c1, c2) {
+        observer(c1.value, c2.value)
+    }
     // Call observer after observeChange to avoid double recomputation in most cells.
     observer(c1.value, c2.value)
     return disposable
@@ -71,7 +73,9 @@ fun <T1, T2, T3> observe(
     c3: Cell<T3>,
     observer: (T1, T2, T3) -> Unit,
 ): Disposable {
-    val disposable = CallbackObserver(c1, c2, c3) { observer(c1.value, c2.value, c3.value) }
+    val disposable = CallbackObserver(c1, c2, c3) {
+        observer(c1.value, c2.value, c3.value)
+    }
     // Call observer after observeChange to avoid double recomputation in most cells.
     observer(c1.value, c2.value, c3.value)
     return disposable
@@ -118,7 +122,9 @@ fun <T1, T2, T3, T4, T5> observe(
 fun <T, R> Cell<T>.map(
     transform: (T) -> R,
 ): Cell<R> =
-    DependentCell(this) { transform(value) }
+    DependentCell(this) {
+        transform(value)
+    }
 
 /**
  * Map a transformation function over 2 cells.
@@ -130,7 +136,9 @@ fun <T1, T2, R> map(
     c2: Cell<T2>,
     transform: (T1, T2) -> R,
 ): Cell<R> =
-    DependentCell(c1, c2) { transform(c1.value, c2.value) }
+    DependentCell(c1, c2) {
+        transform(c1.value, c2.value)
+    }
 
 /**
  * Map a transformation function over 3 cells.
@@ -143,7 +151,42 @@ fun <T1, T2, T3, R> map(
     c3: Cell<T3>,
     transform: (T1, T2, T3) -> R,
 ): Cell<R> =
-    DependentCell(c1, c2, c3) { transform(c1.value, c2.value, c3.value) }
+    DependentCell(c1, c2, c3) {
+        transform(c1.value, c2.value, c3.value)
+    }
+
+/**
+ * Map a transformation function over 4 cells.
+ *
+ * @param transform called whenever [c1], [c2], [c3] or [c4] changes
+ */
+fun <T1, T2, T3, T4, R> map(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    c4: Cell<T4>,
+    transform: (T1, T2, T3, T4) -> R,
+): Cell<R> =
+    DependentCell(c1, c2, c3, c4) {
+        transform(c1.value, c2.value, c3.value, c4.value)
+    }
+
+/**
+ * Map a transformation function over 5 cells.
+ *
+ * @param transform called whenever [c1], [c2], [c3], [c4] or [c5] changes
+ */
+fun <T1, T2, T3, T4, T5, R> map(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    c4: Cell<T4>,
+    c5: Cell<T5>,
+    transform: (T1, T2, T3, T4, T5) -> R,
+): Cell<R> =
+    DependentCell(c1, c2, c3, c4, c5) {
+        transform(c1.value, c2.value, c3.value, c4.value, c5.value)
+    }
 
 fun <T> Cell<Cell<T>>.flatten(): Cell<T> =
     FlatteningDependentCell(this) { this.value }
@@ -157,7 +200,9 @@ fun <T> Cell<Cell<T>>.flatten(): Cell<T> =
 fun <T, R> Cell<T>.flatMap(
     transform: (T) -> Cell<R>,
 ): Cell<R> =
-    FlatteningDependentCell(this) { transform(value) }
+    FlatteningDependentCell(this) {
+        transform(value)
+    }
 
 /**
  * Map a transformation function that returns a cell over 2 cells. The resulting cell will change
@@ -170,10 +215,131 @@ fun <T1, T2, R> flatMap(
     c2: Cell<T2>,
     transform: (T1, T2) -> Cell<R>,
 ): Cell<R> =
-    FlatteningDependentCell(c1, c2) { transform(c1.value, c2.value) }
+    FlatteningDependentCell(c1, c2) {
+        transform(c1.value, c2.value)
+    }
+
+/**
+ * Map a transformation function that returns a cell over 3 cells. The resulting cell will change
+ * when any of those cells change and also when the cell returned by [transform] changes.
+ *
+ * @param transform called whenever this cell changes
+ */
+fun <T1, T2, T3, R> flatMap(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    transform: (T1, T2, T3) -> Cell<R>,
+): Cell<R> =
+    FlatteningDependentCell(c1, c2, c3) {
+        transform(c1.value, c2.value, c3.value)
+    }
+
+/**
+ * Map a transformation function that returns a cell over 4 cells. The resulting cell will change
+ * when any of those cells change and also when the cell returned by [transform] changes.
+ *
+ * @param transform called whenever this cell changes
+ */
+fun <T1, T2, T3, T4, R> flatMap(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    c4: Cell<T4>,
+    transform: (T1, T2, T3, T4) -> Cell<R>,
+): Cell<R> =
+    FlatteningDependentCell(c1, c2, c3, c4) {
+        transform(c1.value, c2.value, c3.value, c4.value)
+    }
+
+/**
+ * Map a transformation function that returns a cell over 5 cells. The resulting cell will change
+ * when any of those cells change and also when the cell returned by [transform] changes.
+ *
+ * @param transform called whenever this cell changes
+ */
+fun <T1, T2, T3, T4, T5, R> flatMap(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    c4: Cell<T4>,
+    c5: Cell<T5>,
+    transform: (T1, T2, T3, T4, T5) -> Cell<R>,
+): Cell<R> =
+    FlatteningDependentCell(c1, c2, c3, c4, c5) {
+        transform(c1.value, c2.value, c3.value, c4.value, c5.value)
+    }
 
 fun <T, R> Cell<T>.flatMapNull(transform: (T) -> Cell<R>?): Cell<R?> =
-    FlatteningDependentCell(this) { transform(value) ?: nullCell() }
+    FlatteningDependentCell(this) {
+        transform(value) ?: nullCell()
+    }
+
+/**
+ * Map a transformation function that returns a cell over 2 cells. The resulting cell will change
+ * when either cell changes and also when the cell returned by [transform] changes.
+ *
+ * @param transform called whenever this cell changes
+ */
+fun <T1, T2, R> flatMapNull(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    transform: (T1, T2) -> Cell<R>?,
+): Cell<R?> =
+    FlatteningDependentCell(c1, c2) {
+        transform(c1.value, c2.value) ?: nullCell()
+    }
+
+/**
+ * Map a transformation function that returns a cell over 3 cells. The resulting cell will change
+ * when any of those cells change and also when the cell returned by [transform] changes.
+ *
+ * @param transform called whenever this cell changes
+ */
+fun <T1, T2, T3, R> flatMapNull(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    transform: (T1, T2, T3) -> Cell<R>?,
+): Cell<R?> =
+    FlatteningDependentCell(c1, c2, c3) {
+        transform(c1.value, c2.value, c3.value) ?: nullCell()
+    }
+
+/**
+ * Map a transformation function that returns a cell over 4 cells. The resulting cell will change
+ * when any of those cells change and also when the cell returned by [transform] changes.
+ *
+ * @param transform called whenever this cell changes
+ */
+fun <T1, T2, T3, T4, R> flatMapNull(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    c4: Cell<T4>,
+    transform: (T1, T2, T3, T4) -> Cell<R>?,
+): Cell<R?> =
+    FlatteningDependentCell(c1, c2, c3, c4) {
+        transform(c1.value, c2.value, c3.value, c4.value) ?: nullCell()
+    }
+
+/**
+ * Map a transformation function that returns a cell over 5 cells. The resulting cell will change
+ * when any of those cells change and also when the cell returned by [transform] changes.
+ *
+ * @param transform called whenever this cell changes
+ */
+fun <T1, T2, T3, T4, T5, R> flatMapNull(
+    c1: Cell<T1>,
+    c2: Cell<T2>,
+    c3: Cell<T3>,
+    c4: Cell<T4>,
+    c5: Cell<T5>,
+    transform: (T1, T2, T3, T4, T5) -> Cell<R>?,
+): Cell<R?> =
+    FlatteningDependentCell(c1, c2, c3, c4, c5) {
+        transform(c1.value, c2.value, c3.value, c4.value, c5.value) ?: nullCell()
+    }
 
 fun Cell<*>.isNull(): Cell<Boolean> =
     map { it == null }
