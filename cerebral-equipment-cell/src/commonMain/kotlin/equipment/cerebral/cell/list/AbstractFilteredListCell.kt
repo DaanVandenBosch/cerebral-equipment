@@ -3,7 +3,6 @@ package equipment.cerebral.cell.list
 import equipment.cerebral.cell.Dependency
 import equipment.cerebral.cell.Dependent
 import equipment.cerebral.cell.MutationManager
-import equipment.cerebral.cell.unsafeCast
 
 internal abstract class AbstractFilteredListCell<E>(
     protected val list: ListCell<E>,
@@ -12,8 +11,6 @@ internal abstract class AbstractFilteredListCell<E>(
     /** Set during a change wave when [list] changes. */
     private var listInvalidated = false
 
-    /** Mutation ID during which the current list of changes was created. */
-    private var changesMutationId: Long = -1
     private var listChangeIndex = 0
 
     /** Set during a change wave when [predicateDependency] changes. */
@@ -27,32 +24,34 @@ internal abstract class AbstractFilteredListCell<E>(
 
     final override val value: List<E>
         get() {
-            computeValueAndEvent()
+            computeValueAndChanges()
             return elements
         }
 
-    private var _changeEvent: ListChangeEvent<E>? = null
-    final override val changeEvent: ListChangeEvent<E>?
+    private var _lastChanged: Long = -1
+    final override val lastChanged: Long
         get() {
-            computeValueAndEvent()
-            return _changeEvent
+            computeValueAndChanges()
+            return _lastChanged
         }
 
-    private fun computeValueAndEvent() {
-        if (!valid) {
-            // Reuse the same list of changes during a mutation.
-            val event = _changeEvent
-            val filteredChanges: MutableList<ListChange<E>>
+    private val _changes: MutableList<ListChange<E>> = mutableListOf()
+    final override val changes: List<ListChange<E>>
+        get() {
+            computeValueAndChanges()
+            return _changes
+        }
 
-            if (event == null || changesMutationId != MutationManager.currentMutationId) {
-                changesMutationId = MutationManager.currentMutationId
+    private fun computeValueAndChanges() {
+        if (!valid) {
+            val filteredChanges = _changes
+
+            // Only clear changes once during each mutation.
+            val currentMutationId = MutationManager.currentMutationId
+
+            if (_lastChanged != currentMutationId) {
                 listChangeIndex = 0
-                filteredChanges = mutableListOf()
-                _changeEvent = ListChangeEvent(elements, filteredChanges)
-            } else {
-                // This cast is safe because we know we always instantiate our change event
-                // with a mutable list.
-                filteredChanges = unsafeCast(event.changes)
+                filteredChanges.clear()
             }
 
             val hasDependents = dependents.isNotEmpty()
@@ -67,14 +66,16 @@ internal abstract class AbstractFilteredListCell<E>(
                 filteredChanges.add(
                     ListChange(index = 0, prevSize = removed.size, removed, elements),
                 )
-            } else {
-                val listChangeEvent = list.changeEvent
 
-                if (listInvalidated && listChangeEvent != null) {
-                    for (change in listChangeEvent.changes.listIterator(listChangeIndex)) {
+                _lastChanged = currentMutationId
+            } else {
+                val listChanges = list.changes
+
+                if (listInvalidated) {
+                    for (change in listChanges.listIterator(listChangeIndex)) {
                         val prevSize = elements.size
                         // Map the incoming change index to an index into our own elements list.
-                        var eventIndex = prevSize
+                        var elementIndex = prevSize
 
                         // IMPROVE: Avoid this loop by storing the index where an element "would" be
                         // if it passed the predicate?
@@ -82,7 +83,7 @@ internal abstract class AbstractFilteredListCell<E>(
                             val i = mapIndex(index)
 
                             if (i != -1) {
-                                eventIndex = i
+                                elementIndex = i
                                 break
                             }
                         }
@@ -94,14 +95,14 @@ internal abstract class AbstractFilteredListCell<E>(
                             val index = removeIndexMapping(change.index)
 
                             if (index != -1) {
-                                elements.removeAt(eventIndex)
+                                elements.removeAt(elementIndex)
                                 removed.add(element)
                             }
                         }
 
                         // Process insertions.
                         val inserted = mutableListOf<E>()
-                        var insertionIndex = eventIndex
+                        var insertionIndex = elementIndex
 
                         for ((i, element) in change.inserted.withIndex()) {
                             if (applyPredicate(element)) {
@@ -133,7 +134,7 @@ internal abstract class AbstractFilteredListCell<E>(
                         if (removed.isNotEmpty() || inserted.isNotEmpty()) {
                             filteredChanges.add(
                                 ListChange(
-                                    eventIndex,
+                                    elementIndex,
                                     prevSize,
                                     removed,
                                     inserted,
@@ -142,15 +143,13 @@ internal abstract class AbstractFilteredListCell<E>(
                         }
                     }
 
-                    listChangeIndex = listChangeEvent.changes.size
+                    listChangeIndex = listChanges.size
                 }
 
                 processOtherChanges(filteredChanges)
 
-                if (filteredChanges.isEmpty()) {
-                    _changeEvent = null
-                } else {
-                    // Keep the previous change event, it has been changed internally.
+                if (filteredChanges.isNotEmpty()) {
+                    _lastChanged = currentMutationId
                 }
             }
 

@@ -5,12 +5,6 @@ package equipment.cerebral.cell
  */
 interface Dependency<out T> {
     /**
-     * This property is not meant to be accessed from typical application code. The current change
-     * event for this dependency. Only valid during a mutation.
-     */
-    val changeEvent: ChangeEvent<T>?
-
-    /**
      * This method is not meant to be called from typical application code. Usually you'll want to
      * use [Cell.observeChange].
      */

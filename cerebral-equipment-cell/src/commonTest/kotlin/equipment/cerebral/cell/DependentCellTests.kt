@@ -18,7 +18,7 @@ class DependentCellTests : CellWithDependenciesTests {
 
         override val cell: Cell<Any> = DependentCell(dependencyCell) { 2 * dependencyCell.value }
 
-        override fun emit() {
+        override fun changeValue() {
             dependencyCell.value += 2
         }
     }

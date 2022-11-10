@@ -6,11 +6,11 @@ internal class SimpleCell<T>(value: T) : AbstractCell<T>(), MutableCell<T> {
             if (value != field) {
                 applyChange {
                     field = value
-                    changeEvent = ChangeEvent(value)
+                    lastChanged = MutationManager.currentMutationId
                 }
             }
         }
 
-    override var changeEvent: ChangeEvent<T>? = null
+    override var lastChanged: Long = -1
         private set
 }

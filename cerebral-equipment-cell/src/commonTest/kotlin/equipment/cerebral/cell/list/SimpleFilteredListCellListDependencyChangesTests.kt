@@ -9,7 +9,7 @@ import equipment.cerebral.cell.cell
  * dependency does not.
  */
 @Suppress("unused")
-class SimpleFilteredListCellListDependencyEmitsTests :
+class SimpleFilteredListCellListDependencyChangesTests :
     ListCellTests, CellWithDependenciesTests {
 
     override fun createListProvider(empty: Boolean) = object : ListCellTests.Provider {

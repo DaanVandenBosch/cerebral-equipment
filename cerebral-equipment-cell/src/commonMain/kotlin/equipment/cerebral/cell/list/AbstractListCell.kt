@@ -3,7 +3,6 @@ package equipment.cerebral.cell.list
 import equipment.cerebral.cell.AbstractCell
 import equipment.cerebral.cell.CallbackChangeObserver
 import equipment.cerebral.cell.Cell
-import equipment.cerebral.cell.ChangeObserver
 import equipment.cerebral.cell.DependentCell
 import equipment.cerebral.cell.disposable.Disposable
 import equipment.cerebral.cell.unsafeAssertNotNull
@@ -40,11 +39,11 @@ internal abstract class AbstractListCell<E> : AbstractCell<List<E>>(), ListCell<
             return unsafeAssertNotNull(_notEmpty)
         }
 
-    final override fun observeChange(observer: ChangeObserver<List<E>>): Disposable =
-        observeListChange(observer)
-
-    override fun observeListChange(observer: ListChangeObserver<E>): Disposable =
+    override fun observeChange(observer: (List<E>) -> Unit): Disposable =
         CallbackChangeObserver(this, observer)
+
+    override fun observeListChange(observer: (List<ListChange<E>>) -> Unit): Disposable =
+        CallbackListChangeObserver(this, observer)
 
     override fun toString(): String = listCellToString(this)
 }

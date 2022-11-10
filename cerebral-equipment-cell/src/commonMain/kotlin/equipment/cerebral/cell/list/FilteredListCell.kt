@@ -1,11 +1,9 @@
 package equipment.cerebral.cell.list
 
 import equipment.cerebral.cell.Cell
-import equipment.cerebral.cell.ChangeEvent
 import equipment.cerebral.cell.Dependency
 import equipment.cerebral.cell.Dependent
 import equipment.cerebral.cell.assert
-import equipment.cerebral.cell.assertUnreachable
 import equipment.cerebral.cell.unsafeCast
 
 internal class FilteredListCell<E>(
@@ -191,12 +189,6 @@ internal class FilteredListCell<E>(
          */
         var index: Int,
     ) : Dependent, Dependency<Boolean> {
-        override val changeEvent: ChangeEvent<Boolean>?
-            get() {
-                assertUnreachable { "Change event is never computed." }
-                return null
-            }
-
         override fun dependencyInvalidated(dependency: Dependency<*>) {
             assert { dependency === predicateResult }
 

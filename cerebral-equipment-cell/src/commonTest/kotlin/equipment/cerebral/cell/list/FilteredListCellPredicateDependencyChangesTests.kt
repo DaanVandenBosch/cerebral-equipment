@@ -6,7 +6,7 @@ import equipment.cerebral.cell.*
  * In these tests the predicate dependency of the [FilteredListCell] changes.
  */
 @Suppress("unused")
-class FilteredListCellPredicateDependencyEmitsTests : ListCellTests, CellWithDependenciesTests {
+class FilteredListCellPredicateDependencyChangesTests : ListCellTests, CellWithDependenciesTests {
     override fun createListProvider(empty: Boolean) = object : ListCellTests.Provider {
         private var maxValue = if (empty) 0 else 1
 

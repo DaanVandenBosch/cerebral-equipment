@@ -1,7 +1,6 @@
 package equipment.cerebral.cell.list
 
 import equipment.cerebral.cell.Cell
-import equipment.cerebral.cell.ChangeObserver
 import equipment.cerebral.cell.Dependency
 import equipment.cerebral.cell.Dependent
 import equipment.cerebral.cell.cell
@@ -20,7 +19,9 @@ internal class ImmutableListCell<E>(
 
     override val value: List<E> = elements
 
-    override val changeEvent: ListChangeEvent<E>? get() = null
+    override val lastChanged: Long get() = -1
+
+    override val changes: List<ListChange<E>> get() = emptyList()
 
     override fun addDependent(dependent: Dependent) {
         // We don't remember our dependents because we never need to notify them of changes.
@@ -32,9 +33,10 @@ internal class ImmutableListCell<E>(
 
     override fun get(index: Int): E = elements[index]
 
-    override fun observeChange(observer: ChangeObserver<List<E>>): Disposable = nopDisposable()
+    override fun observeChange(observer: (List<E>) -> Unit): Disposable = nopDisposable()
 
-    override fun observeListChange(observer: ListChangeObserver<E>): Disposable = nopDisposable()
+    override fun observeListChange(observer: (List<ListChange<E>>) -> Unit): Disposable =
+        nopDisposable()
 
     override fun toString(): String = listCellToString(this)
 }

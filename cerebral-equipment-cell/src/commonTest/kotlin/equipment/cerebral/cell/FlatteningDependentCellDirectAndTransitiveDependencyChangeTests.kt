@@ -5,7 +5,7 @@ package equipment.cerebral.cell
  * [FlatteningDependentCell] change.
  */
 @Suppress("unused")
-class FlatteningDependentCellDirectAndTransitiveDependencyEmitTests : CellTests {
+class FlatteningDependentCellDirectAndTransitiveDependencyChangeTests : CellTests {
     override fun createProvider() = Provider()
 
     class Provider : CellTests.Provider {
@@ -14,7 +14,7 @@ class FlatteningDependentCellDirectAndTransitiveDependencyEmitTests : CellTests 
 
         override val cell: Cell<Any> = FlatteningDependentCell(dependencyCell) { dependencyCell }
 
-        override fun emit() {
+        override fun changeValue() {
             dependencyCell.value += 1
         }
     }

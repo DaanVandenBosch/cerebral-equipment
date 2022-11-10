@@ -40,42 +40,21 @@ interface ListCellTests : CellTests {
     }
 
     @Test
-    fun emits_no_list_change_event_until_changed() = test {
+    fun does_not_call_list_observers_until_changed() = test {
         val p = createListProvider(empty = false)
 
-        var observedEvent: ListChangeEvent<Any>? = null
+        var changes: List<ListChange<*>>? = null
 
-        disposer.add(p.cell.observeListChange { listChangeEvent ->
-            observedEvent = listChangeEvent
+        disposer.add(p.cell.observeListChange {
+            assertNull(changes)
+            changes = it
         })
 
-        assertNull(observedEvent)
+        assertNull(changes)
 
-        p.emit()
+        p.changeValue()
 
-        assertNotNull(observedEvent)
-    }
-
-    @Test
-    fun calls_list_observers_when_changed() = test {
-        val p = createProvider()
-
-        var event: ListChangeEvent<*>? = null
-
-        disposer.add(
-            p.cell.observeListChange {
-                assertNull(event)
-                event = it
-            }
-        )
-
-        for (i in 0..2) {
-            event = null
-
-            p.addElement()
-
-            assertNotNull(event)
-        }
+        assertNotNull(changes)
     }
 
     @Test
@@ -89,7 +68,7 @@ interface ListCellTests : CellTests {
         disposer.add(
             p.cell.size.observeChange {
                 assertNull(observedSize)
-                observedSize = it.value
+                observedSize = it
             }
         )
 
@@ -127,7 +106,7 @@ interface ListCellTests : CellTests {
 
         disposer.add(fold.observeChange {
             assertNull(observedValue)
-            observedValue = it.value
+            observedValue = it
         })
 
         assertEquals(0, fold.value)
@@ -152,7 +131,7 @@ interface ListCellTests : CellTests {
 
         disposer.add(sum.observeChange {
             assertNull(observedValue)
-            observedValue = it.value
+            observedValue = it
         })
 
         assertEquals(0, sum.value)
@@ -173,22 +152,22 @@ interface ListCellTests : CellTests {
 
         val filtered = p.cell.filtered { true }
 
-        var event: ListChangeEvent<*>? = null
+        var changes: List<ListChange<*>>? = null
 
         disposer.add(filtered.observeListChange {
-            assertNull(event)
-            event = it
+            assertNull(changes)
+            changes = it
         })
 
         assertEquals(0, filtered.size.value)
 
         for (i in 1..5) {
-            event = null
+            changes = null
 
             p.addElement()
 
             assertEquals(i, filtered.size.value)
-            assertNotNull(event)
+            assertNotNull(changes)
         }
     }
 
@@ -202,7 +181,7 @@ interface ListCellTests : CellTests {
 
         disposer.add(firstOrNull.observeChange {
             assertNull(observedValue)
-            observedValue = it.value
+            observedValue = it
         })
 
         assertNull(firstOrNull.value)
@@ -237,7 +216,7 @@ interface ListCellTests : CellTests {
             p.cell.observeChange {
                 // Change will be observed exactly once every loop iteration.
                 assertNull(observedValue)
-                observedValue = it.value.toList()
+                observedValue = it.toList()
             }
         )
 
@@ -246,7 +225,7 @@ interface ListCellTests : CellTests {
             observedValue = null
 
             val v1 = p.cell.value.toList()
-            var v3: List<Any>? = null
+            val v3: List<Any>?
 
             mutate {
                 val v2 = p.cell.value.toList()
@@ -257,7 +236,7 @@ interface ListCellTests : CellTests {
                 v3 = p.cell.value.toList()
 
                 assertNotEquals(v2, v3)
-                assertEquals(v2.size + 1, v3!!.size)
+                assertEquals(v2.size + 1, v3.size)
 
                 p.addElement()
 
@@ -268,13 +247,13 @@ interface ListCellTests : CellTests {
 
             assertNotNull(v3)
             assertNotEquals(v3, v4)
-            assertEquals(v3!!.size + 1, v4.size)
+            assertEquals(v3.size + 1, v4.size)
             assertEquals(v4, observedValue)
         }
     }
 
     /**
-     * During a mutation, changes should never be removed from the event's change list, they should
+     * During a mutation, changes should never be removed from the list's change list, they should
      * only be added. This is because certain cell implementations keep track of which changes
      * they've already applied by simply storing an index into the change list.
      */
@@ -289,9 +268,8 @@ interface ListCellTests : CellTests {
 
                 repeat(5) { idx ->
                     p.addElement()
-                    // Adding an element always causes a change, from this point on we always have a
-                    // change event.
-                    val changes = p.cell.changeEvent!!.changes.toList()
+
+                    val changes = p.cell.changes.toList()
 
                     assertEquals(prevChanges.size + 1, changes.size, "Repetition $outerIdx, $idx.")
                     assertEquals(prevChanges, changes.dropLast(1), "Repetition $outerIdx, $idx.")
@@ -316,6 +294,6 @@ interface ListCellTests : CellTests {
          */
         fun addElement()
 
-        override fun emit() = addElement()
+        override fun changeValue() = addElement()
     }
 }

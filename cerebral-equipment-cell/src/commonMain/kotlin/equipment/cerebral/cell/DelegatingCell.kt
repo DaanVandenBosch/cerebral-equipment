@@ -12,11 +12,11 @@ internal class DelegatingCell<T>(
             if (newValue != field) {
                 applyChange {
                     field = newValue
-                    changeEvent = ChangeEvent(newValue)
+                    lastChanged = MutationManager.currentMutationId
                 }
             }
         }
 
-    override var changeEvent: ChangeEvent<T>? = null
+    override var lastChanged: Long = -1
         private set
 }

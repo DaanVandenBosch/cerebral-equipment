@@ -11,7 +11,7 @@ class DependentCellWithSimpleListCellTests : CellTests {
 
         override val cell: Cell<Any> = DependentCell(dependencyCell) { dependencyCell.value }
 
-        override fun emit() {
+        override fun changeValue() {
             dependencyCell.add("x")
         }
     }

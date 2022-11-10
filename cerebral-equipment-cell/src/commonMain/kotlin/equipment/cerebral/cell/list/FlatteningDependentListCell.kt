@@ -1,32 +1,33 @@
 package equipment.cerebral.cell.list
 
 import equipment.cerebral.cell.AbstractFlatteningDependentCell
-import equipment.cerebral.cell.CallbackChangeObserver
 import equipment.cerebral.cell.Cell
-import equipment.cerebral.cell.ChangeObserver
 import equipment.cerebral.cell.DependentCell
 import equipment.cerebral.cell.MutationManager
 import equipment.cerebral.cell.disposable.Disposable
 import equipment.cerebral.cell.unsafeAssertNotNull
-import equipment.cerebral.cell.unsafeCast
 
 /**
  * Similar to [DependentListCell], except that this cell's computeElements returns a [ListCell].
  */
-// IMPROVE: Improve performance when transitive cell changes. At the moment a change event is
+// IMPROVE: Improve performance when computed list cell changes. At the moment a list change is
 // generated that just pretends the whole list has changed.
 internal class FlatteningDependentListCell<E>(
     vararg dependencies: Cell<*>,
     computeElements: () -> ListCell<E>,
 ) :
-    AbstractFlatteningDependentCell<List<E>, ListCell<E>, ListChangeEvent<E>>(
+    AbstractFlatteningDependentCell<List<E>, ListCell<E>>(
         dependencies,
         computeElements
     ),
     ListCell<E> {
 
-    /** Mutation ID during which the current list of changes was created. */
-    private var changesMutationId: Long = -1
+    private var _changes: MutableList<ListChange<E>> = mutableListOf()
+    override val changes: List<ListChange<E>>
+        get() {
+            computeValueAndLastChanged()
+            return _changes
+        }
 
     private var _size: Cell<Int>? = null
     override val size: Cell<Int>
@@ -58,34 +59,23 @@ internal class FlatteningDependentListCell<E>(
             return unsafeAssertNotNull(_notEmpty)
         }
 
-    override fun observeChange(observer: ChangeObserver<List<E>>): Disposable =
-        observeListChange(observer)
+    override fun observeListChange(observer: (List<ListChange<E>>) -> Unit): Disposable =
+        CallbackListChangeObserver(this, observer)
 
-    override fun observeListChange(observer: ListChangeObserver<E>): Disposable =
-        CallbackChangeObserver(this, observer)
-
-    override fun toString(): String = listCellToString(this)
-
-    override fun updateValueAndEvent(oldValue: List<E>?, newValue: List<E>) {
+    override fun updateValueAndLastChanged(oldValue: List<E>?, newValue: List<E>) {
         // Make a copy because this value is later used as the "removed" field of a list change.
         val newElements = newValue.toList()
         val oldElements = oldValue ?: emptyList()
         valueInternal = newElements
 
-        val event = changeEventInternal
+        val currentMutationId = MutationManager.currentMutationId
 
-        val changes =
-            if (event == null || changesMutationId != MutationManager.currentMutationId) {
-                changesMutationId = MutationManager.currentMutationId
-                mutableListOf()
-            } else {
-                // Reuse the same list of changes during a mutation.
-                // This cast is safe because we know we always instantiate our change event with
-                // a mutable list.
-                unsafeCast<MutableList<ListChange<E>>>(event.changes)
-            }
+        if (lastChangedInternal != currentMutationId) {
+            lastChangedInternal = currentMutationId
+            _changes.clear()
+        }
 
-        changes.add(
+        _changes.add(
             ListChange(
                 index = 0,
                 prevSize = oldElements.size,
@@ -93,7 +83,7 @@ internal class FlatteningDependentListCell<E>(
                 inserted = newValue,
             )
         )
-
-        changeEventInternal = ListChangeEvent(newValue, changes)
     }
+
+    override fun toString(): String = listCellToString(this)
 }

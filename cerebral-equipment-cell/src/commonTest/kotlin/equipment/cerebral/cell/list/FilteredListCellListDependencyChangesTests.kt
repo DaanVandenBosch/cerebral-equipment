@@ -9,7 +9,7 @@ import equipment.cerebral.cell.map
  * In these tests the list dependency of the [FilteredListCell] changes.
  */
 @Suppress("unused")
-class FilteredListCellListDependencyEmitsTests : ListCellTests, CellWithDependenciesTests {
+class FilteredListCellListDependencyChangesTests : ListCellTests, CellWithDependenciesTests {
     override fun createListProvider(empty: Boolean) = object : ListCellTests.Provider {
         // The list cell changes.
         private val dependencyCell =

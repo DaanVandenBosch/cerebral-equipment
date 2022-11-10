@@ -1,17 +1,16 @@
 package equipment.cerebral.cell
 
-internal abstract class AbstractFlatteningDependentCell
-<T, ComputedCell : Cell<T>, Event : ChangeEvent<T>>(
+internal abstract class AbstractFlatteningDependentCell<T, ComputedCell : Cell<T>>(
     private val dependencies: Array<out Cell<*>>,
     private val compute: () -> ComputedCell,
-) : AbstractDependentCell<T, Event>() {
+) : AbstractDependentCell<T>() {
 
     private var computedCell: ComputedCell? = null
     private var computedInDeps = false
     private var shouldRecomputeCell = true
     private var valid = false
 
-    override fun computeValueAndEvent() {
+    override fun computeValueAndLastChanged() {
         if (!valid) {
             val oldValue = valueInternal
             val hasDependents = dependents.isNotEmpty()
@@ -37,13 +36,13 @@ internal abstract class AbstractFlatteningDependentCell
                 computedCell = unsafeAssertNotNull(this.computedCell)
             }
 
-            updateValueAndEvent(oldValue, computedCell.value)
+            updateValueAndLastChanged(oldValue, computedCell.value)
             // We stay invalid if we have no dependents to ensure our value is always recomputed.
             valid = hasDependents
         }
     }
 
-    protected abstract fun updateValueAndEvent(oldValue: T?, newValue: T)
+    protected abstract fun updateValueAndLastChanged(oldValue: T?, newValue: T)
 
     override fun addDependent(dependent: Dependent) {
         super.addDependent(dependent)
@@ -54,8 +53,8 @@ internal abstract class AbstractFlatteningDependentCell
             }
 
             // Called to ensure that we depend on the computed cell. This could be optimized by
-            // avoiding the value and changeEvent calculation.
-            computeValueAndEvent()
+            // avoiding the value and changes calculation.
+            computeValueAndLastChanged()
         }
     }
 

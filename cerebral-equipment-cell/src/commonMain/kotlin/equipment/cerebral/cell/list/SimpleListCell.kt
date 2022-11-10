@@ -1,7 +1,6 @@
 package equipment.cerebral.cell.list
 
 import equipment.cerebral.cell.MutationManager
-import equipment.cerebral.cell.unsafeCast
 
 /**
  * @param elements The backing list for this [ListCell].
@@ -16,11 +15,12 @@ internal class SimpleListCell<E>(
             replaceAll(value)
         }
 
-    override var changeEvent: ListChangeEvent<E>? = null
+    override var lastChanged: Long = -1
         private set
 
-    /** Mutation ID during which the current list of changes was created. */
-    private var changesMutationId: Long = -1
+    private var _changes: MutableList<ListChange<E>> = mutableListOf()
+    override val changes: List<ListChange<E>>
+        get() = _changes
 
     override operator fun get(index: Int): E =
         elements[index]
@@ -170,17 +170,14 @@ internal class SimpleListCell<E>(
         removed: List<E>,
         inserted: List<E>,
     ) {
-        val event = changeEvent
-        val listChange = ListChange(index, prevSize, removed, inserted)
+        val currentMutationId = MutationManager.currentMutationId
 
-        if (event == null || changesMutationId != MutationManager.currentMutationId) {
-            changesMutationId = MutationManager.currentMutationId
-            changeEvent = ListChangeEvent(elements, mutableListOf(listChange))
-        } else {
-            // Reuse the same list of changes during a mutation.
-            // This cast is safe because we know we always instantiate our change event with a
-            // mutable list.
-            unsafeCast<MutableList<ListChange<E>>>(event.changes).add(listChange)
+        // Only clear changes once during each mutation.
+        if (lastChanged != currentMutationId) {
+            lastChanged = currentMutationId
+            _changes.clear()
         }
+
+        _changes.add(ListChange(index, prevSize, removed, inserted))
     }
 }

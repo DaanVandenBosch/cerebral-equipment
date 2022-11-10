@@ -6,7 +6,7 @@ import equipment.cerebral.cell.*
  * In these tests, the direct list cell dependency of the [ListElementsDependentCell] doesn't
  * change, but its elements do change.
  */
-class ListElementsDependentCellElementEmitsTests : CellWithDependenciesTests {
+class ListElementsDependentCellElementChangesTests : CellWithDependenciesTests {
 
     override fun createProvider() = object : CellTests.Provider {
         // One transitive dependency can change.
@@ -19,7 +19,7 @@ class ListElementsDependentCellElementEmitsTests : CellWithDependenciesTests {
         override val cell =
             ListElementsDependentCell(directDependency) { arrayOf(it.int, it.double, it.string) }
 
-        override fun emit() {
+        override fun changeValue() {
             transitiveDependency.int.value++
         }
     }

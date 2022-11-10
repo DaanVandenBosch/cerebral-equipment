@@ -5,7 +5,7 @@ class SimpleCellTests : MutableCellTests<Int> {
     override fun createProvider() = object : MutableCellTests.Provider<Int> {
         override val cell = SimpleCell(1)
 
-        override fun emit() {
+        override fun changeValue() {
             cell.value += 2
         }
 

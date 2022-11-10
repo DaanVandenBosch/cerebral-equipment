@@ -1,6 +1,5 @@
 package equipment.cerebral.cell.list
 
-import equipment.cerebral.cell.ChangeEvent
 import equipment.cerebral.cell.SimpleCell
 import equipment.cerebral.cell.test.CellTestSuite
 import kotlin.test.Test
@@ -8,8 +7,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 /**
- * Standard tests are done by [ListElementsDependentCellElementEmitsTests] and
- * [ListElementsDependentCellListCellEmitsTests].
+ * Standard tests are done by [ListElementsDependentCellElementChangesTests] and
+ * [ListElementsDependentCellListCellChangesTests].
  */
 class ListElementsDependentCellTests : CellTestSuite {
     @Test
@@ -24,32 +23,32 @@ class ListElementsDependentCellTests : CellTestSuite {
 
         val cell = ListElementsDependentCell(list) { arrayOf(it) }
 
-        var event: ChangeEvent<*>? = null
+        var observedValue: List<SimpleCell<*>>? = null
 
         disposer.add(cell.observeChange {
-            assertNull(event)
-            event = it
+            assertNull(observedValue)
+            observedValue = it
         })
 
-        // The cell should not emit events when an old element is changed.
+        // The cell should not call observers when an old element is changed.
         run {
             val removed = list.removeAt(1)
-            event = null
+            observedValue = null
 
             removed.value += "-1"
 
-            assertNull(event)
+            assertNull(observedValue)
         }
 
-        // The cell should emit events when any of the current elements are changed.
+        // The cell should call observers when any of the current elements are changed.
         list.add(SimpleCell("d"))
 
         for (element in list.value) {
-            event = null
+            observedValue = null
 
             element.value += "-2"
 
-            val e = event
+            val e = observedValue
             assertNotNull(e)
         }
     }

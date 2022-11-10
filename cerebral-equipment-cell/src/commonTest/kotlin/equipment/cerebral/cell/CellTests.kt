@@ -1,6 +1,5 @@
 package equipment.cerebral.cell
 
-import equipment.cerebral.cell.disposable.use
 import equipment.cerebral.cell.test.CellTestSuite
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -34,7 +33,7 @@ interface CellTests : CellTestSuite {
         repeat(5) { index ->
             dependencyInvalidatedCalled = false
 
-            p.emit()
+            p.changeValue()
 
             assertTrue(dependencyInvalidatedCalled, "repetition $index")
         }
@@ -59,7 +58,7 @@ interface CellTests : CellTestSuite {
     }
 
     @Test
-    fun calls_observers_when_events_are_emitted() = test {
+    fun calls_observers_when_value_changes() = test {
         val p = createProvider()
         var changes = 0
 
@@ -69,13 +68,13 @@ interface CellTests : CellTestSuite {
             }
         )
 
-        p.emit()
+        p.changeValue()
 
         assertEquals(1, changes)
 
-        p.emit()
-        p.emit()
-        p.emit()
+        p.changeValue()
+        p.changeValue()
+        p.changeValue()
 
         assertEquals(4, changes)
     }
@@ -89,53 +88,53 @@ interface CellTests : CellTestSuite {
             changes++
         }
 
-        p.emit()
+        p.changeValue()
 
         assertEquals(1, changes)
 
         observer.dispose()
 
-        p.emit()
-        p.emit()
-        p.emit()
+        p.changeValue()
+        p.changeValue()
+        p.changeValue()
 
         assertEquals(1, changes)
     }
 
     @Test
-    fun emits_no_change_event_until_changed() = test {
+    fun does_not_call_observers_until_changed() = test {
         val p = createProvider()
 
-        var observedEvent: ChangeEvent<Any>? = null
+        var observedValue: Any? = null
 
-        disposer.add(p.cell.observeChange { changeEvent ->
-            observedEvent = changeEvent
+        disposer.add(p.cell.observeChange { newValue ->
+            observedValue = newValue
         })
 
-        assertNull(observedEvent)
+        assertNull(observedValue)
 
-        p.emit()
+        p.changeValue()
 
-        assertNotNull(observedEvent)
+        assertNotNull(observedValue)
     }
 
     @Test
-    fun emits_correct_value_in_change_events() = test {
+    fun calls_observers_with_correct_value() = test {
         val p = createProvider()
 
         var prevValue: Snapshot?
         var observedValue: Snapshot? = null
 
-        disposer.add(p.cell.observeChange { changeEvent ->
+        disposer.add(p.cell.observeChange { newValue ->
             assertNull(observedValue)
-            observedValue = changeEvent.value.snapshot()
+            observedValue = newValue.snapshot()
         })
 
         repeat(3) {
             prevValue = observedValue
             observedValue = null
 
-            p.emit()
+            p.changeValue()
 
             // We should have observed a value, it should be different from the previous value, and
             // it should be equal to the cell's current value.
@@ -157,14 +156,14 @@ interface CellTests : CellTestSuite {
         var old: Snapshot = p.cell.value.snapshot()
 
         repeat(5) {
-            // Value should change after emit.
-            p.emit()
+            // Value should change when requested.
+            p.changeValue()
 
             val new = p.cell.value.snapshot()
 
             assertNotEquals(old, new)
 
-            // Value should not change when emit hasn't been called since the last access.
+            // Value should not change when not requested since the last access.
             assertEquals(new, p.cell.value.snapshot())
 
             old = new
@@ -180,13 +179,13 @@ interface CellTests : CellTestSuite {
         val p = createProvider()
         var changes = 0
 
-        p.cell.observe {
+        disposer.add(p.cell.observe {
             changes++
-        }.use {
-            p.emit()
+        })
 
-            assertEquals(2, changes)
-        }
+        p.changeValue()
+
+        assertEquals(2, changes)
     }
 
     @Test
@@ -197,12 +196,12 @@ interface CellTests : CellTestSuite {
 
         var observedValue: Snapshot? = null
 
-        disposer.add(mapped.observeChange { changeEvent ->
+        disposer.add(mapped.observeChange { newValue ->
             assertNull(observedValue)
-            observedValue = changeEvent.value
+            observedValue = newValue
         })
 
-        p.emit()
+        p.changeValue()
 
         assertNotEquals(initialValue, mapped.value)
         assertEquals(mapped.value, observedValue)
@@ -217,12 +216,12 @@ interface CellTests : CellTestSuite {
 
         var observedValue: Snapshot? = null
 
-        disposer.add(mapped.observeChange {
+        disposer.add(mapped.observeChange { newValue ->
             assertNull(observedValue)
-            observedValue = it.value
+            observedValue = newValue
         })
 
-        p.emit()
+        p.changeValue()
 
         assertNotEquals(initialValue, mapped.value)
         assertEquals(mapped.value, observedValue)
@@ -249,7 +248,7 @@ interface CellTests : CellTestSuite {
 
             mutate {
                 repeat(5) {
-                    p.emit()
+                    p.changeValue()
 
                     // Change should be deferred until this mutation finishes.
                     assertEquals(0, changes)
@@ -280,8 +279,8 @@ interface CellTests : CellTestSuite {
             callbackCalled = 0
 
             mutate {
-                p1.emit()
-                p2.emit()
+                p1.changeValue()
+                p2.changeValue()
 
                 // Change should be deferred until this mutation finishes.
                 assertEquals(0, callbackCalled)
@@ -299,10 +298,10 @@ interface CellTests : CellTestSuite {
         var observedValue: Snapshot? = null
 
         disposer.add(
-            p.cell.observeChange {
+            p.cell.observeChange { newValue ->
                 // Change will be observed exactly once every loop iteration.
                 assertNull(observedValue)
-                observedValue = it.value.snapshot()
+                observedValue = newValue.snapshot()
             }
         )
 
@@ -318,12 +317,12 @@ interface CellTests : CellTestSuite {
 
                 assertEquals(v1, v2)
 
-                p.emit()
+                p.changeValue()
                 v3 = p.cell.value.snapshot()
 
                 assertNotEquals(v2, v3)
 
-                p.emit()
+                p.changeValue()
 
                 assertNull(observedValue)
             }
@@ -352,14 +351,14 @@ interface CellTests : CellTestSuite {
         }
 
         mutate {
-            ps[0].emit()
+            ps[0].changeValue()
 
             repeat(3) {
                 mutate {
-                    ps[1].emit()
+                    ps[1].changeValue()
 
                     mutate {
-                        ps[2].emit()
+                        ps[2].changeValue()
                     }
 
                     assertTrue(observedChanges.all { it == 0 })
@@ -377,9 +376,9 @@ interface CellTests : CellTestSuite {
         val cell: Cell<Any>
 
         /**
-         * Makes [cell] emit a change.
+         * Makes [cell]'s value change.
          */
-        fun emit()
+        fun changeValue()
     }
 }
 
@@ -388,10 +387,10 @@ typealias Snapshot = String
 
 /**
  * We use toString to create "snapshots" of values throughout the tests. Most of the time cells will
- * actually have a new value after emitting a change event, but this is not always the case with
- * more complex cells or cells that point to complex values. So instead of keeping references to
- * values and comparing them with == (or using e.g. assertEquals), we compare snapshots.
+ * actually have a new value after changing, but this is not always the case with more complex cells
+ * or cells that point to complex values. So instead of keeping references to values and comparing
+ * them with == (or using e.g. assertEquals), we compare snapshots.
  *
- * This of course assumes that all values have sensible toString implementations.
+ * This of course assumes that all used values have sensible toString implementations.
  */
 fun Any?.snapshot(): Snapshot = toString()

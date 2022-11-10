@@ -67,12 +67,12 @@ class MutationTests : CellTestSuite {
         val dependent = dependency.map { 2 * it }
 
         var dependentObservedValue: Int? = null
-        disposer.add(dependent.observeChange { dependentObservedValue = it.value })
+        disposer.add(dependent.observeChange { dependentObservedValue = it })
 
         assertFails {
             mutate {
                 dependency.value = 11
-                throw Exception()
+                throw TestException()
             }
         }
 
@@ -88,4 +88,6 @@ class MutationTests : CellTestSuite {
         assertEquals(26, dependentObservedValue)
         assertEquals(26, dependent.value)
     }
+
+    private class TestException : Exception()
 }

@@ -1,15 +1,5 @@
 package equipment.cerebral.cell.list
 
-import equipment.cerebral.cell.ChangeEvent
-
-class ListChangeEvent<out E>(
-    value: List<E>,
-    val changes: List<ListChange<E>>,
-) : ChangeEvent<List<E>>(value) {
-    override fun toString(): String =
-        "ListChangeEvent($value, changes=$changes)"
-}
-
 /**
  * Represents a structural change to a list cell. E.g. an element is inserted or removed.
  */
@@ -27,5 +17,3 @@ class ListChange<out E>(
     override fun toString(): String =
         "ListChange(index=$index, prevSize=$prevSize, removed=$removed, inserted=$inserted)"
 }
-
-typealias ListChangeObserver<E> = (ListChangeEvent<E>) -> Unit

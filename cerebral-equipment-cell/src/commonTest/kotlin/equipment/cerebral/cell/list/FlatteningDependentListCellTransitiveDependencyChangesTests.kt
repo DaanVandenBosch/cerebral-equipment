@@ -9,7 +9,7 @@ import equipment.cerebral.cell.ImmutableCell
  * In these tests the dependency of the [FlatteningDependentListCell]'s direct dependency changes.
  */
 @Suppress("unused")
-class FlatteningDependentListCellTransitiveDependencyEmitsTests :
+class FlatteningDependentListCellTransitiveDependencyChangesTests :
     ListCellTests,
     CellWithDependenciesTests {
 

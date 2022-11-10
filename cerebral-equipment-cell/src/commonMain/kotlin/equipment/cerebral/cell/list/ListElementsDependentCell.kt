@@ -2,9 +2,9 @@ package equipment.cerebral.cell.list
 
 import equipment.cerebral.cell.AbstractCell
 import equipment.cerebral.cell.Cell
-import equipment.cerebral.cell.ChangeEvent
 import equipment.cerebral.cell.Dependency
 import equipment.cerebral.cell.Dependent
+import equipment.cerebral.cell.MutationManager
 import equipment.cerebral.cell.splice
 
 /**
@@ -22,53 +22,51 @@ internal class ListElementsDependentCell<E>(
 
     override val value: List<E>
         get() {
-            updateElementDependenciesAndEvent()
+            updateElementDependenciesAndChanges()
             return list.value
         }
 
-    override var changeEvent: ChangeEvent<List<E>>? = null
+    private var _lastChanged: Long = -1
+    override val lastChanged: Long
         get() {
-            updateElementDependenciesAndEvent()
-            return field
+            updateElementDependenciesAndChanges()
+            return _lastChanged
         }
-        private set
 
-    private fun updateElementDependenciesAndEvent() {
+    private fun updateElementDependenciesAndChanges() {
         if (!valid) {
-            if (listInvalidated) {
+            if (listInvalidated && list.lastChanged == MutationManager.currentMutationId) {
                 // At this point we can remove this dependent from the removed elements'
                 // dependencies and add it to the newly inserted elements' dependencies.
-                list.changeEvent?.let { listChangeEvent ->
-                    for (change in listChangeEvent.changes) {
-                        for (i in change.index until (change.index + change.removed.size)) {
-                            for (elementDependency in elementDependencies[i]) {
-                                elementDependency.removeDependent(this)
-                            }
+                for (change in list.changes) {
+                    for (i in change.index until (change.index + change.removed.size)) {
+                        for (elementDependency in elementDependencies[i]) {
+                            elementDependency.removeDependent(this)
                         }
+                    }
 
-                        val inserted = change.inserted.map(extractCells)
+                    val inserted = change.inserted.map(extractCells)
 
-                        elementDependencies.splice(
-                            startIndex = change.index,
-                            amount = change.removed.size,
-                            elements = inserted,
-                        )
+                    elementDependencies.splice(
+                        startIndex = change.index,
+                        amount = change.removed.size,
+                        elements = inserted,
+                    )
 
-                        for (elementDependencies in inserted) {
-                            for (elementDependency in elementDependencies) {
-                                elementDependency.addDependent(this)
-                            }
+                    for (elementDependencies in inserted) {
+                        for (elementDependency in elementDependencies) {
+                            elementDependency.addDependent(this)
                         }
                     }
                 }
-
-                // Reset for the next change wave.
-                listInvalidated = false
             }
 
-            changeEvent = ChangeEvent(list.value)
-            // We stay invalid if we have no dependents to ensure our change event is always
-            // recomputed.
+            _lastChanged = MutationManager.currentMutationId
+
+            // Reset for the next change wave.
+            listInvalidated = false
+
+            // We stay invalid if we have no dependents to ensure our changes are always recomputed.
             valid = dependents.isNotEmpty()
         }
     }

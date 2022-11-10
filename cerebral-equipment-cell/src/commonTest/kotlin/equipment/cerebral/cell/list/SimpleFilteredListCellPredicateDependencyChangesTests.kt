@@ -10,7 +10,7 @@ import equipment.cerebral.cell.map
  * does not.
  */
 @Suppress("unused")
-class SimpleFilteredListCellPredicateDependencyEmitsTests :
+class SimpleFilteredListCellPredicateDependencyChangesTests :
     ListCellTests, CellWithDependenciesTests {
 
     override fun createListProvider(empty: Boolean) = object : ListCellTests.Provider {

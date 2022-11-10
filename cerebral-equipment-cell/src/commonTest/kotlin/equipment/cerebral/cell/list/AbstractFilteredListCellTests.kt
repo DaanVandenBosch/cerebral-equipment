@@ -2,6 +2,7 @@ package equipment.cerebral.cell.list
 
 import equipment.cerebral.cell.Cell
 import equipment.cerebral.cell.ImmutableCell
+import equipment.cerebral.cell.MutationManager
 import equipment.cerebral.cell.SimpleCell
 import equipment.cerebral.cell.mutate
 import equipment.cerebral.cell.test.CellTestSuite
@@ -38,7 +39,7 @@ interface AbstractFilteredListCellTests : CellTestSuite {
     }
 
     @Test
-    fun only_emits_when_necessary() = test {
+    fun only_calls_observers_when_changed() = test {
         val dep = SimpleListCell<Int>(mutableListOf())
         val list = createFilteredListCell(dep, predicate = ImmutableCell { it % 2 == 0 })
         var changes = 0
@@ -67,24 +68,24 @@ interface AbstractFilteredListCellTests : CellTestSuite {
     }
 
     @Test
-    fun emits_correct_change_events() = test {
+    fun calls_observers_with_correct_change_list() = test {
         val dep = SimpleListCell<Int>(mutableListOf())
         val list = createFilteredListCell(dep, predicate = ImmutableCell { it % 2 == 0 })
-        var event: ListChangeEvent<Int>? = null
+        var changes: List<ListChange<Int>>? = null
 
         disposer.add(list.observeListChange {
-            assertNull(event)
-            event = it
+            assertNull(changes)
+            changes = it
         })
 
         run {
             dep.replaceAll(listOf(1, 2, 3, 4, 5))
 
-            val e = event
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c = e.changes.first()
+            val c = cs.first()
             assertEquals(0, c.index)
             assertEquals(0, c.removed.size)
             assertEquals(2, c.inserted.size)
@@ -92,16 +93,16 @@ interface AbstractFilteredListCellTests : CellTestSuite {
             assertEquals(4, c.inserted[1])
         }
 
-        event = null
+        changes = null
 
         run {
             dep.splice(2, 2, 10)
 
-            val e = event
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c = e.changes.first()
+            val c = cs.first()
             assertEquals(1, c.index)
             assertEquals(1, c.removed.size)
             assertEquals(4, c.removed[0])
@@ -111,14 +112,14 @@ interface AbstractFilteredListCellTests : CellTestSuite {
     }
 
     @Test
-    fun value_changes_and_emits_when_predicate_changes() = test {
+    fun value_changes_and_observers_are_called_when_predicate_changes() = test {
         val predicate: SimpleCell<(Int) -> Boolean> = SimpleCell { it % 2 == 0 }
         val list = createFilteredListCell(ImmutableListCell(listOf(1, 2, 3, 4, 5)), predicate)
-        var event: ListChangeEvent<Int>? = null
+        var changes: List<ListChange<Int>>? = null
 
         disposer.add(list.observeListChange {
-            assertNull(event)
-            event = it
+            assertNull(changes)
+            changes = it
         })
 
         run {
@@ -128,18 +129,18 @@ interface AbstractFilteredListCellTests : CellTestSuite {
             // Value changes.
             assertEquals(listOf(1, 3, 5), list.value)
 
-            // An event was emitted.
-            val e = event
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            // List changes where created.
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c = e.changes.first()
+            val c = cs.first()
             assertEquals(0, c.index)
             assertEquals(listOf(2, 4), c.removed)
             assertEquals(listOf(1, 3, 5), c.inserted)
         }
 
-        event = null
+        changes = null
 
         run {
             // Change predicate.
@@ -148,12 +149,12 @@ interface AbstractFilteredListCellTests : CellTestSuite {
             // Value changes.
             assertEquals(listOf(2, 4), list.value)
 
-            // An event was emitted.
-            val e = event
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            // List changes where created.
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c = e.changes.first()
+            val c = cs.first()
             assertEquals(0, c.index)
             assertEquals(listOf(1, 3, 5), c.removed)
             assertEquals(listOf(2, 4), c.inserted)
@@ -161,16 +162,18 @@ interface AbstractFilteredListCellTests : CellTestSuite {
     }
 
     @Test
-    fun emits_correctly_when_multiple_changes_happen_at_once() = test {
+    fun observers_are_called_correctly_when_multiple_changes_happen_at_once() = test {
         val dependency = object : AbstractListCell<Int>() {
             private val elements: MutableList<Int> = mutableListOf()
             override val value: List<Int> get() = elements
-            override var changeEvent: ListChangeEvent<Int>? = null
+            override var lastChanged: Long = -1
+                private set
+            override var changes: List<ListChange<Int>> = emptyList()
                 private set
 
             fun makeChanges(newElements: List<Int>) {
                 applyChange {
-                    val changes: MutableList<ListChange<Int>> = mutableListOf()
+                    val changes = mutableListOf<ListChange<Int>>()
 
                     for (newElement in newElements) {
                         changes.add(
@@ -184,64 +187,75 @@ interface AbstractFilteredListCellTests : CellTestSuite {
                         elements.add(newElement)
                     }
 
-                    changeEvent = ListChangeEvent(elements.toList(), changes)
+                    lastChanged = MutationManager.currentMutationId
+                    this.changes = changes
                 }
             }
         }
 
         val list = createFilteredListCell(dependency, ImmutableCell { true })
-        var event: ListChangeEvent<Int>? = null
+        var value: List<Int>? = null
+        var changes: List<ListChange<Int>>? = null
+
+        disposer.add(list.observeChange {
+            assertNull(value)
+            value = it
+        })
 
         disposer.add(list.observeListChange {
-            assertNull(event)
-            event = it
+            assertNull(changes)
+            changes = it
         })
 
         for (i in 1..3) {
-            event = null
+            value = null
+            changes = null
 
             // Make two changes at once everytime.
-            val change0 = i * 13
-            val change1 = i * 17
-            val changes = listOf(change0, change1)
+            val changeEl0 = i * 13
+            val changeEl1 = i * 17
+            val changesEls = listOf(changeEl0, changeEl1)
             val oldList = list.value.toList()
 
-            dependency.makeChanges(changes)
+            dependency.makeChanges(changesEls)
 
             // These checks are very implementation-specific. At some point the filtered list might,
-            // for example, emit an event with a single change instead of two changes and then this
-            // test will incorrectly fail.
-            val e = event
-            assertNotNull(e)
-            assertEquals(oldList + changes, e.value)
-            assertEquals(2, e.changes.size)
+            // for example, create a single change instead of two changes and then this test will
+            // incorrectly fail.
+            val v = value
+            assertNotNull(v)
+            assertEquals(oldList + changesEls, v)
 
-            val lc0 = e.changes[0]
-            assertEquals(oldList.size, lc0.index)
-            assertEquals(oldList.size, lc0.prevSize)
-            assertTrue(lc0.removed.isEmpty())
-            assertEquals(listOf(change0), lc0.inserted)
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(2, cs.size)
 
-            val lc1 = e.changes[1]
-            assertEquals(oldList.size + 1, lc1.index)
-            assertEquals(oldList.size + 1, lc1.prevSize)
-            assertTrue(lc1.removed.isEmpty())
-            assertEquals(listOf(change1), lc1.inserted)
+            val c0 = cs[0]
+            assertEquals(oldList.size, c0.index)
+            assertEquals(oldList.size, c0.prevSize)
+            assertTrue(c0.removed.isEmpty())
+            assertEquals(listOf(changeEl0), c0.inserted)
+
+            val c1 = cs[1]
+            assertEquals(oldList.size + 1, c1.index)
+            assertEquals(oldList.size + 1, c1.prevSize)
+            assertTrue(c1.removed.isEmpty())
+            assertEquals(listOf(changeEl1), c1.inserted)
         }
     }
 
     @Test
-    fun emits_correctly_when_dependency_contains_same_element_twice() = test {
+    fun observers_are_called_correctly_when_dependency_contains_same_element_twice() = test {
         val x = "x"
         val y = "y"
         val z = "z"
         val dependency = SimpleListCell(mutableListOf(x, y, z, x, y, z))
         val list = createFilteredListCell(dependency, ImmutableCell { it != y })
-        var event: ListChangeEvent<String>? = null
+        var changes: List<ListChange<String>>? = null
 
         disposer.add(list.observeListChange {
-            assertNull(event)
-            event = it
+            assertNull(changes)
+            changes = it
         })
 
         assertEquals(listOf(x, z, x, z), list.value)
@@ -253,18 +267,18 @@ interface AbstractFilteredListCellTests : CellTestSuite {
             // Value changes.
             assertEquals(listOf(x, z, z), list.value)
 
-            // An event was emitted.
-            val e = event
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            // List changes where created.
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c = e.changes.first()
+            val c = cs.first()
             assertEquals(2, c.index)
             assertEquals(listOf(x), c.removed)
             assertTrue(c.inserted.isEmpty())
         }
 
-        event = null
+        changes = null
 
         run {
             // Remove first x element.
@@ -273,18 +287,18 @@ interface AbstractFilteredListCellTests : CellTestSuite {
             // Value changes.
             assertEquals(listOf(z, z), list.value)
 
-            // An event was emitted.
-            val e = event
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            // List changes where created.
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c = e.changes.first()
+            val c = cs.first()
             assertEquals(0, c.index)
             assertEquals(listOf(x), c.removed)
             assertTrue(c.inserted.isEmpty())
         }
 
-        event = null
+        changes = null
 
         run {
             // Remove second z element.
@@ -293,12 +307,12 @@ interface AbstractFilteredListCellTests : CellTestSuite {
             // Value changes.
             assertEquals(listOf(z), list.value)
 
-            // An event was emitted.
-            val e = event
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            // List changes where created.
+            val cs = changes
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c = e.changes.first()
+            val c = cs.first()
             assertEquals(1, c.index)
             assertEquals(listOf(z), c.removed)
             assertTrue(c.inserted.isEmpty())
@@ -309,17 +323,23 @@ interface AbstractFilteredListCellTests : CellTestSuite {
      * This tests the short-circuit path where a filtered list's predicate changes.
      */
     @Test
-    fun dependent_filtered_list_value_changes_and_emits_correctly_when_predicate_changes() = test {
+    fun dependent_filtered_list_changes_correctly_when_predicate_changes() = test {
         val list = mutableListCell(1, 2, 3, 4, 5, 6)
         val predicate: SimpleCell<(Int) -> Boolean> = SimpleCell { it % 2 == 0 }
         val filteredList = createFilteredListCell(list, predicate)
         val dependentList = filteredList.filtered { true }
 
-        var event: ListChangeEvent<Int>? = null
+        var value: List<Int>? = null
+        var changes: List<ListChange<Int>>? = null
+
+        disposer.add(dependentList.observeChange {
+            assertNull(value)
+            value = it
+        })
 
         disposer.add(dependentList.observeListChange {
-            assertNull(event)
-            event = it
+            assertNull(changes)
+            changes = it
         })
 
         assertEquals(listOf(2, 4, 6), dependentList.value)
@@ -339,25 +359,27 @@ interface AbstractFilteredListCellTests : CellTestSuite {
 
         assertEquals(listOf(1, 3, 5), dependentList.value)
 
-        val e = event
-        assertNotNull(e)
-        assertEquals(listOf(1, 3, 5), e.value)
+        val v = value
+        assertNotNull(v)
+        assertEquals(listOf(1, 3, 5), v)
 
-        assertEquals(3, e.changes.size)
+        val cs = changes
+        assertNotNull(cs)
+        assertEquals(3, cs.size)
 
-        val c0 = e.changes[0]
+        val c0 = cs[0]
         assertEquals(3, c0.index)
         assertEquals(3, c0.prevSize)
         assertEquals(emptyList(), c0.removed)
         assertEquals(listOf(10), c0.inserted)
 
-        val c1 = e.changes[1]
+        val c1 = cs[1]
         assertEquals(4, c1.index)
         assertEquals(4, c1.prevSize)
         assertEquals(emptyList(), c1.removed)
         assertEquals(listOf(20), c1.inserted)
 
-        val c2 = e.changes[2]
+        val c2 = cs[2]
         assertEquals(0, c2.index)
         assertEquals(5, c2.prevSize)
         assertEquals(listOf(2, 4, 6, 10, 20), c2.removed)

@@ -48,7 +48,7 @@ fun <T> mutableCell(getter: () -> T, setter: (T) -> Unit): MutableCell<T> =
 fun <T> Cell<T>.observe(
     observer: (T) -> Unit,
 ): Disposable {
-    val disposable = observeChange { observer(it.value) }
+    val disposable = observeChange(observer)
     // Call observer after observeChange to avoid double recomputation in most cells.
     observer(value)
     return disposable

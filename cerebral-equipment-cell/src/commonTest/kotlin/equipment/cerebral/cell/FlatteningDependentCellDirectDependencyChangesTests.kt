@@ -4,7 +4,7 @@ package equipment.cerebral.cell
  * In these tests the direct dependency of the [FlatteningDependentCell] changes.
  */
 @Suppress("unused")
-class FlatteningDependentCellDirectDependencyEmitsTests : CellTests {
+class FlatteningDependentCellDirectDependencyChangesTests : CellTests {
     override fun createProvider() = object : CellTests.Provider {
         // The transitive dependency can't change.
         val transitiveDependency = ImmutableCell(5)
@@ -15,7 +15,7 @@ class FlatteningDependentCellDirectDependencyEmitsTests : CellTests {
         override val cell =
             FlatteningDependentCell(directDependency) { directDependency.value }
 
-        override fun emit() {
+        override fun changeValue() {
             // Update the direct dependency.
             val oldTransitiveDependency = directDependency.value
             directDependency.value = ImmutableCell(oldTransitiveDependency.value + 5)

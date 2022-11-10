@@ -5,8 +5,8 @@ import equipment.cerebral.cell.Cell
 // IMPROVE: A test suite that tests SimpleFilteredListCell while both types of dependencies are
 // changing.
 /**
- * Standard tests are done by [SimpleFilteredListCellListDependencyEmitsTests] and
- * [SimpleFilteredListCellPredicateDependencyEmitsTests].
+ * Standard tests are done by [SimpleFilteredListCellListDependencyChangesTests] and
+ * [SimpleFilteredListCellPredicateDependencyChangesTests].
  */
 @Suppress("unused")
 class SimpleFilteredListCellTests : AbstractFilteredListCellTests {

@@ -1,13 +1,16 @@
-package equipment.cerebral.cell
+package equipment.cerebral.cell.list
 
+import equipment.cerebral.cell.Dependency
+import equipment.cerebral.cell.LeafDependent
+import equipment.cerebral.cell.MutationManager
 import equipment.cerebral.cell.disposable.TrackedDisposable
 
 /**
  * Calls [callback] when [dependency] changes.
  */
-internal class CallbackChangeObserver<T>(
-    private val dependency: Cell<T>,
-    private val callback: (T) -> Unit,
+internal class CallbackListChangeObserver<E>(
+    private val dependency: ListCell<E>,
+    private val callback: (List<ListChange<E>>) -> Unit,
 ) : TrackedDisposable(), LeafDependent {
 
     init {
@@ -25,7 +28,7 @@ internal class CallbackChangeObserver<T>(
 
     override fun dependenciesChanged() {
         if (dependency.lastChanged == MutationManager.currentMutationId) {
-            callback(dependency.value)
+            callback(dependency.changes)
         }
     }
 }

@@ -6,18 +6,18 @@ package equipment.cerebral.cell
 internal class DependentCell<T>(
     private vararg val dependencies: Cell<*>,
     private val compute: () -> T,
-) : AbstractDependentCell<T, ChangeEvent<T>>() {
+) : AbstractDependentCell<T>() {
 
     private var valid = false
 
-    override fun computeValueAndEvent() {
+    override fun computeValueAndLastChanged() {
         // Recompute value every time when we have no dependents. At that point we're not yet a
         // dependent of our own dependencies, and thus we won't automatically recompute our value
         // when they change.
         if (!valid) {
             val newValue = compute()
             valueInternal = newValue
-            changeEventInternal = ChangeEvent(newValue)
+            lastChangedInternal = MutationManager.currentMutationId
             valid = dependents.isNotEmpty()
         }
     }

@@ -6,7 +6,11 @@ import equipment.cerebral.cell.disposable.Disposable
 interface ListCell<out E> : Cell<List<E>> {
     override val value: List<E>
 
-    override val changeEvent: ListChangeEvent<E>?
+    /**
+     * This property is not meant to be accessed from typical application code. The current list of
+     * changes for this dependency. Only valid during a mutation.
+     */
+    val changes: List<ListChange<E>>
 
     val size: Cell<Int>
 
@@ -19,8 +23,7 @@ interface ListCell<out E> : Cell<List<E>> {
     /**
      * List variant of [Cell.observeChange].
      */
-    // Exists solely because function parameters are invariant.
-    fun observeListChange(observer: ListChangeObserver<E>): Disposable
+    fun observeListChange(observer: (List<ListChange<E>>) -> Unit): Disposable
 
     operator fun contains(element: @UnsafeVariance E): Boolean = element in value
 }

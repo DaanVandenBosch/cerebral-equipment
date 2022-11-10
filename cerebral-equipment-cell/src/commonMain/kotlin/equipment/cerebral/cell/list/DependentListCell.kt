@@ -4,7 +4,6 @@ import equipment.cerebral.cell.Cell
 import equipment.cerebral.cell.Dependency
 import equipment.cerebral.cell.Dependent
 import equipment.cerebral.cell.MutationManager
-import equipment.cerebral.cell.unsafeCast
 
 /**
  * ListCell of which the value depends on 0 or more other cells.
@@ -19,40 +18,39 @@ internal class DependentListCell<E>(
     private var _value: List<E> = emptyList()
     override val value: List<E>
         get() {
-            computeValueAndEvent()
+            computeValueAndChanges()
             return _value
         }
 
-    private var _changeEvent: ListChangeEvent<E>? = null
-    override val changeEvent: ListChangeEvent<E>?
+    private var _lastChanged: Long = -1
+    override val lastChanged: Long
         get() {
-            computeValueAndEvent()
-            return _changeEvent
+            computeValueAndChanges()
+            return _lastChanged
         }
 
-    /** Mutation ID during which the current list of changes was created. */
-    private var changesMutationId: Long = -1
+    private val _changes: MutableList<ListChange<E>> = mutableListOf()
+    override val changes: List<ListChange<E>>
+        get() {
+            computeValueAndChanges()
+            return _changes
+        }
 
-    private fun computeValueAndEvent() {
+    private fun computeValueAndChanges() {
         if (!valid) {
             val oldElements = _value
             val newElements = computeElements()
             _value = newElements
 
-            val event = _changeEvent
+            val currentMutationId = MutationManager.currentMutationId
 
-            val changes =
-                if (event == null || changesMutationId != MutationManager.currentMutationId) {
-                    changesMutationId = MutationManager.currentMutationId
-                    mutableListOf()
-                } else {
-                    // Reuse the same list of changes during a mutation.
-                    // This cast is safe because we know we always instantiate our change event with
-                    // a mutable list.
-                    unsafeCast<MutableList<ListChange<E>>>(event.changes)
-                }
+            // Only clear changes once during each mutation.
+            if (_lastChanged != currentMutationId) {
+                _lastChanged = currentMutationId
+                _changes.clear()
+            }
 
-            changes.add(
+            _changes.add(
                 ListChange(
                     index = 0,
                     prevSize = oldElements.size,
@@ -60,7 +58,6 @@ internal class DependentListCell<E>(
                     inserted = newElements,
                 )
             )
-            _changeEvent = ListChangeEvent(newElements, changes)
             valid = dependents.isNotEmpty()
         }
     }

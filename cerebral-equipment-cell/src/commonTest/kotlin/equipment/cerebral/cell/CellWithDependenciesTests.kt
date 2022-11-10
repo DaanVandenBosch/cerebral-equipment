@@ -11,6 +11,9 @@ interface CellWithDependenciesTests : CellTests {
         dependency3: Cell<Int>,
     ): Cell<Any>
 
+    /**
+     * Tests low level [Dependency] implementation.
+     */
     @Test
     fun emits_at_least_once_when_all_of_its_dependencies_emit() = test {
         val root = SimpleCell(5)
@@ -76,7 +79,7 @@ interface CellWithDependenciesTests : CellTests {
     private class TestCell : AbstractCell<Int>() {
         val dependentCount: Int get() = dependents.size
 
-        override val value: Int = 5
-        override val changeEvent: ChangeEvent<Int> = ChangeEvent(value)
+        override val value: Int get() = 5
+        override val lastChanged: Long get() = -1
     }
 }

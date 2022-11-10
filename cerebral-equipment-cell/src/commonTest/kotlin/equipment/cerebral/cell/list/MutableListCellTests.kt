@@ -1,7 +1,11 @@
 package equipment.cerebral.cell.list
 
 import equipment.cerebral.cell.MutableCellTests
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Test suite for all [MutableListCell] implementations. There is a subclass of this suite for every
@@ -14,11 +18,11 @@ interface MutableListCellTests<T : Any> : ListCellTests, MutableCellTests<List<T
     fun add() = test {
         val p = createProvider()
 
-        var changeEvent: ListChangeEvent<T>? = null
+        var observedChanges: List<ListChange<T>>? = null
 
         disposer.add(p.cell.observeListChange {
-            assertNull(changeEvent)
-            changeEvent = it
+            assertNull(observedChanges)
+            observedChanges = it
         })
 
         // Insert once.
@@ -29,11 +33,11 @@ interface MutableListCellTests<T : Any> : ListCellTests, MutableCellTests<List<T
             assertEquals(1, p.cell.size.value)
             assertEquals(v1, p.cell[0])
 
-            val e = changeEvent
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            val cs = observedChanges
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c0 = e.changes[0]
+            val c0 = cs[0]
             assertEquals(0, c0.index)
             assertTrue(c0.removed.isEmpty())
             assertEquals(1, c0.inserted.size)
@@ -41,7 +45,7 @@ interface MutableListCellTests<T : Any> : ListCellTests, MutableCellTests<List<T
         }
 
         // Insert a second time.
-        changeEvent = null
+        observedChanges = null
 
         val v2 = p.createElement()
         p.cell.add(v2)
@@ -51,11 +55,11 @@ interface MutableListCellTests<T : Any> : ListCellTests, MutableCellTests<List<T
             assertEquals(v1, p.cell[0])
             assertEquals(v2, p.cell[1])
 
-            val e = changeEvent
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            val cs = observedChanges
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c0 = e.changes[0]
+            val c0 = cs[0]
             assertEquals(1, c0.index)
             assertTrue(c0.removed.isEmpty())
             assertEquals(1, c0.inserted.size)
@@ -63,7 +67,7 @@ interface MutableListCellTests<T : Any> : ListCellTests, MutableCellTests<List<T
         }
 
         // Insert at index.
-        changeEvent = null
+        observedChanges = null
 
         val v3 = p.createElement()
         p.cell.add(1, v3)
@@ -74,11 +78,11 @@ interface MutableListCellTests<T : Any> : ListCellTests, MutableCellTests<List<T
             assertEquals(v3, p.cell[1])
             assertEquals(v2, p.cell[2])
 
-            val e = changeEvent
-            assertNotNull(e)
-            assertEquals(1, e.changes.size)
+            val cs = observedChanges
+            assertNotNull(cs)
+            assertEquals(1, cs.size)
 
-            val c0 = e.changes[0]
+            val c0 = cs[0]
             assertEquals(1, c0.index)
             assertTrue(c0.removed.isEmpty())
             assertEquals(1, c0.inserted.size)

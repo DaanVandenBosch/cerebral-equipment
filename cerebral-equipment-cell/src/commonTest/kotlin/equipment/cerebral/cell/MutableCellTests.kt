@@ -8,14 +8,14 @@ interface MutableCellTests<T : Any> : CellTests {
     override fun createProvider(): Provider<T>
 
     @Test
-    fun emits_a_change_event_when_value_is_modified() = test {
+    fun calls_observers_when_value_is_modified() = test {
         val p = createProvider()
 
         var observedValue: Any? = null
 
-        disposer.add(p.cell.observeChange {
+        disposer.add(p.cell.observeChange { newValue ->
             assertNull(observedValue)
-            observedValue = it.value
+            observedValue = newValue
         })
 
         val newValue = p.createValue()

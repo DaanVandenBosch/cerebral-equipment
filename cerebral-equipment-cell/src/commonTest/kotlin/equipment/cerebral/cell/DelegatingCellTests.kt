@@ -7,7 +7,7 @@ class DelegatingCellTests : MutableCellTests<Int> {
 
         override val cell = DelegatingCell({ v }, { v = it })
 
-        override fun emit() {
+        override fun changeValue() {
             cell.value += 2
         }
 

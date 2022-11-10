@@ -31,9 +31,9 @@ internal class CallbackObserver(
     override fun dependenciesChanged() {
         var changed = false
 
-        // We loop through all dependencies to ensure they're valid again.
+        // We loop through all dependencies instead of breaking early to ensure they're valid again.
         for (dependency in dependencies) {
-            if (dependency.changeEvent != null) {
+            if (dependency.lastChanged == MutationManager.currentMutationId) {
                 changed = true
             }
         }
