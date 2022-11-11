@@ -3,6 +3,7 @@ package equipment.cerebral.cell
 import equipment.cerebral.cell.test.CellTestSuite
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -105,48 +106,40 @@ interface CellTests : CellTestSuite {
     fun does_not_call_observers_until_changed() = test {
         val p = createProvider()
 
-        var observedValue: Any? = null
+        var observerCalled = false
 
-        disposer.add(p.cell.observeChange { newValue ->
-            observedValue = newValue
+        disposer.add(p.cell.observeChange {
+            assertFalse(observerCalled)
+            observerCalled = true
         })
 
-        assertNull(observedValue)
+        assertFalse(observerCalled)
+
+        p.changeValue()
+
+        assertTrue(observerCalled)
+    }
+
+    @Test
+    fun value_can_be_accessed_in_observer() = test {
+        val p = createProvider()
+
+        var observedValue: Snapshot? = null
+
+        disposer.add(p.cell.observeChange {
+            assertNull(observedValue)
+            observedValue = p.cell.value.snapshot()
+        })
 
         p.changeValue()
 
         assertNotNull(observedValue)
-    }
-
-    @Test
-    fun calls_observers_with_correct_value() = test {
-        val p = createProvider()
-
-        var prevValue: Snapshot?
-        var observedValue: Snapshot? = null
-
-        disposer.add(p.cell.observeChange { newValue ->
-            assertNull(observedValue)
-            observedValue = newValue.snapshot()
-        })
-
-        repeat(3) {
-            prevValue = observedValue
-            observedValue = null
-
-            p.changeValue()
-
-            // We should have observed a value, it should be different from the previous value, and
-            // it should be equal to the cell's current value.
-            assertNotNull(observedValue)
-            assertNotEquals(prevValue, observedValue)
-            assertEquals(p.cell.value.snapshot(), observedValue)
-        }
+        assertEquals(p.cell.value.snapshot(), observedValue)
     }
 
     /**
      * [Cell.value] should correctly reflect changes even when the [Cell] has no observers.
-     * Typically this means that the cell's value is not updated in real time, only when it is
+     * Typically, this means that the cell's value is not updated in real time, only when it is
      * queried.
      */
     @Test
@@ -175,17 +168,32 @@ interface CellTests : CellTestSuite {
     //
 
     @Test
-    fun propagates_changes_to_observers() = test {
+    fun calls_observers_with_correct_value() = test {
         val p = createProvider()
-        var changes = 0
 
-        disposer.add(p.cell.observe {
-            changes++
+        var prevValue: Snapshot?
+        var observedValue: Snapshot? = null
+
+        disposer.add(p.cell.observe { newValue ->
+            assertNull(observedValue)
+            observedValue = newValue.snapshot()
         })
 
-        p.changeValue()
+        // We should have already been called once.
+        assertNotNull(observedValue)
 
-        assertEquals(2, changes)
+        repeat(3) {
+            prevValue = observedValue
+            observedValue = null
+
+            p.changeValue()
+
+            // We should have observed a value, it should be different from the previous value, and
+            // it should be equal to the cell's current value.
+            assertNotNull(observedValue)
+            assertNotEquals(prevValue, observedValue)
+            assertEquals(p.cell.value.snapshot(), observedValue)
+        }
     }
 
     @Test
@@ -194,17 +202,17 @@ interface CellTests : CellTestSuite {
         val mapped = p.cell.map { it.snapshot() }
         val initialValue = mapped.value
 
-        var observedValue: Snapshot? = null
+        var observerCalled = false
 
-        disposer.add(mapped.observeChange { newValue ->
-            assertNull(observedValue)
-            observedValue = newValue
+        disposer.add(mapped.observeChange {
+            assertFalse(observerCalled)
+            observerCalled = true
         })
 
         p.changeValue()
 
         assertNotEquals(initialValue, mapped.value)
-        assertEquals(mapped.value, observedValue)
+        assertTrue(observerCalled)
     }
 
     @Test
@@ -214,17 +222,17 @@ interface CellTests : CellTestSuite {
         val mapped = p.cell.flatMap { ImmutableCell(it.snapshot()) }
         val initialValue = mapped.value
 
-        var observedValue: Snapshot? = null
+        var observerCalled = false
 
-        disposer.add(mapped.observeChange { newValue ->
-            assertNull(observedValue)
-            observedValue = newValue
+        disposer.add(mapped.observeChange {
+            assertFalse(observerCalled)
+            observerCalled = true
         })
 
         p.changeValue()
 
         assertNotEquals(initialValue, mapped.value)
-        assertEquals(mapped.value, observedValue)
+        assertTrue(observerCalled)
     }
 
     //
@@ -271,7 +279,7 @@ interface CellTests : CellTestSuite {
         var callbackCalled = 0
 
         disposer.add(
-            CallbackObserver(p1.cell, p2.cell) { callbackCalled++ }
+            CellObserver(p1.cell, p2.cell) { callbackCalled++ }
         )
 
         // Repeat 3 times to check that temporary state is always reset.
@@ -298,10 +306,10 @@ interface CellTests : CellTestSuite {
         var observedValue: Snapshot? = null
 
         disposer.add(
-            p.cell.observeChange { newValue ->
+            p.cell.observeChange {
                 // Change will be observed exactly once every loop iteration.
                 assertNull(observedValue)
-                observedValue = newValue.snapshot()
+                observedValue = p.cell.value.snapshot()
             }
         )
 

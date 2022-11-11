@@ -20,9 +20,9 @@ interface MutableListCellTests<T : Any> : ListCellTests, MutableCellTests<List<T
 
         var observedChanges: List<ListChange<T>>? = null
 
-        disposer.add(p.cell.observeListChange {
+        disposer.add(p.cell.observeChange {
             assertNull(observedChanges)
-            observedChanges = it
+            observedChanges = p.cell.changes.toList()
         })
 
         // Insert once.

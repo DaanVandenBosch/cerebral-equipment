@@ -17,7 +17,6 @@ class ImmutableListCellTests : CellTestSuite {
         DisposableTracking.checkNoLeaks {
             // We never call dispose on the returned disposables.
             listCell.observeChange {}
-            listCell.observeListChange {}
         }
     }
 

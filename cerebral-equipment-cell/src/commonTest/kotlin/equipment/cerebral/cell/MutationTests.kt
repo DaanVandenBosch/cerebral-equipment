@@ -4,6 +4,8 @@ import equipment.cerebral.cell.test.CellTestSuite
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class MutationTests : CellTestSuite {
     @Test
@@ -66,8 +68,12 @@ class MutationTests : CellTestSuite {
         val dependency = mutableCell(7)
         val dependent = dependency.map { 2 * it }
 
-        var dependentObservedValue: Int? = null
-        disposer.add(dependent.observeChange { dependentObservedValue = it })
+        var observerCalled = false
+
+        disposer.add(dependent.observeChange {
+            assertFalse(observerCalled)
+            observerCalled = true
+        })
 
         assertFails {
             mutate {
@@ -77,16 +83,18 @@ class MutationTests : CellTestSuite {
         }
 
         // The change to dependency is still propagated because it happened before the exception.
-        assertEquals(22, dependentObservedValue)
         assertEquals(22, dependent.value)
+        assertTrue(observerCalled)
+
+        observerCalled = false
 
         // The mutation machinery is still in a valid state.
         mutate {
             dependency.value = 13
         }
 
-        assertEquals(26, dependentObservedValue)
         assertEquals(26, dependent.value)
+        assertTrue(observerCalled)
     }
 
     private class TestException : Exception()

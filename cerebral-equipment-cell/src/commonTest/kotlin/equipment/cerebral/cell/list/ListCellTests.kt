@@ -5,6 +5,7 @@ import equipment.cerebral.cell.mutate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -32,7 +33,7 @@ interface ListCellTests : CellTests {
     fun list_value_is_accessible_with_observers() = test {
         val p = createListProvider(empty = false)
 
-        disposer.add(p.cell.observeListChange {})
+        disposer.add(p.cell.observeChange {})
 
         // We literally just test that accessing the value property doesn't throw or return the
         // wrong list.
@@ -40,21 +41,22 @@ interface ListCellTests : CellTests {
     }
 
     @Test
-    fun does_not_call_list_observers_until_changed() = test {
-        val p = createListProvider(empty = false)
+    fun changes_can_be_accessed_in_observer() = test {
+        val p = createProvider()
 
-        var changes: List<ListChange<*>>? = null
+        var observedChanges: List<ListChange<*>>? = null
 
-        disposer.add(p.cell.observeListChange {
-            assertNull(changes)
-            changes = it
+        disposer.add(p.cell.observeChange {
+            assertNull(observedChanges)
+            observedChanges = p.cell.changes.toList()
         })
-
-        assertNull(changes)
 
         p.changeValue()
 
-        assertNotNull(changes)
+        val oc = observedChanges
+        assertNotNull(oc)
+        assertEquals(1, oc.size)
+        // Can't compare observed changes to current changes as they're invalid outside a mutation.
     }
 
     @Test
@@ -63,22 +65,22 @@ interface ListCellTests : CellTests {
 
         assertEquals(0, p.cell.size.value)
 
-        var observedSize: Int? = null
+        var observerCalled = false
 
         disposer.add(
             p.cell.size.observeChange {
-                assertNull(observedSize)
-                observedSize = it
+                assertFalse(observerCalled)
+                observerCalled = true
             }
         )
 
         for (i in 1..3) {
-            observedSize = null
+            observerCalled = false
 
             p.addElement()
 
             assertEquals(i, p.cell.size.value)
-            assertEquals(i, observedSize)
+            assertTrue(observerCalled)
         }
     }
 
@@ -102,22 +104,24 @@ interface ListCellTests : CellTests {
 
         val fold = p.cell.fold(0) { acc, _ -> acc + 1 }
 
-        var observedValue: Int? = null
+        var observerCalled = false
 
-        disposer.add(fold.observeChange {
-            assertNull(observedValue)
-            observedValue = it
-        })
+        disposer.add(
+            p.cell.size.observeChange {
+                assertFalse(observerCalled)
+                observerCalled = true
+            }
+        )
 
         assertEquals(0, fold.value)
 
         for (i in 1..5) {
-            observedValue = null
+            observerCalled = false
 
             p.addElement()
 
             assertEquals(i, fold.value)
-            assertEquals(i, observedValue)
+            assertTrue(observerCalled)
         }
     }
 
@@ -127,22 +131,24 @@ interface ListCellTests : CellTests {
 
         val sum = p.cell.sumOf { 1 }
 
-        var observedValue: Int? = null
+        var observerCalled = false
 
-        disposer.add(sum.observeChange {
-            assertNull(observedValue)
-            observedValue = it
-        })
+        disposer.add(
+            p.cell.size.observeChange {
+                assertFalse(observerCalled)
+                observerCalled = true
+            }
+        )
 
         assertEquals(0, sum.value)
 
         for (i in 1..5) {
-            observedValue = null
+            observerCalled = false
 
             p.addElement()
 
             assertEquals(i, sum.value)
-            assertEquals(i, observedValue)
+            assertTrue(observerCalled)
         }
     }
 
@@ -152,53 +158,61 @@ interface ListCellTests : CellTests {
 
         val filtered = p.cell.filtered { true }
 
-        var changes: List<ListChange<*>>? = null
+        var observedChanges: List<ListChange<*>>? = null
 
-        disposer.add(filtered.observeListChange {
-            assertNull(changes)
-            changes = it
-        })
+        disposer.add(
+            p.cell.size.observeChange {
+                assertNull(observedChanges)
+                observedChanges = p.cell.changes.toList()
+            }
+        )
 
         assertEquals(0, filtered.size.value)
 
         for (i in 1..5) {
-            changes = null
+            observedChanges = null
 
             p.addElement()
 
             assertEquals(i, filtered.size.value)
-            assertNotNull(changes)
+
+            val oc = observedChanges
+            assertNotNull(oc)
+            assertEquals(1, oc.size)
         }
     }
 
     @Test
     fun firstOrNull() = test {
-        val p = createProvider()
+        val p = createListProvider(empty = true)
 
         val firstOrNull = p.cell.firstOrNull()
 
-        var observedValue: Any? = null
+        var observerCalled = false
 
-        disposer.add(firstOrNull.observeChange {
-            assertNull(observedValue)
-            observedValue = it
-        })
+        disposer.add(
+            p.cell.size.observeChange {
+                assertFalse(observerCalled)
+                observerCalled = true
+            }
+        )
 
         assertNull(firstOrNull.value)
 
         p.addElement()
 
         assertNotNull(firstOrNull.value)
-        assertNotNull(observedValue)
+        assertTrue(observerCalled)
 
         repeat(3) {
-            observedValue = null
+            observerCalled = false
 
             p.addElement()
 
             assertNotNull(firstOrNull.value)
-            // Observer may or may not be called when adding elements at the end of the list.
-            assertTrue(observedValue == null || observedValue == firstOrNull.value)
+
+            // Observer may or may not be called when adding elements at the end of the list, so
+            // don't check.
         }
     }
 
@@ -216,7 +230,7 @@ interface ListCellTests : CellTests {
             p.cell.observeChange {
                 // Change will be observed exactly once every loop iteration.
                 assertNull(observedValue)
-                observedValue = it.toList()
+                observedValue = p.cell.value.toList()
             }
         )
 
@@ -287,6 +301,9 @@ interface ListCellTests : CellTests {
                 c1.inserted == c2.inserted
 
     interface Provider : CellTests.Provider {
+        /**
+         * This list cell's elements should have a sensible [Any.equals] implementation.
+         */
         override val cell: ListCell<Any>
 
         /**

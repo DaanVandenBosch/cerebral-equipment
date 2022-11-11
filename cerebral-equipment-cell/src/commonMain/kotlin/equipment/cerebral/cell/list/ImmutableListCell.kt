@@ -33,10 +33,7 @@ internal class ImmutableListCell<E>(
 
     override fun get(index: Int): E = elements[index]
 
-    override fun observeChange(observer: (List<E>) -> Unit): Disposable = nopDisposable()
-
-    override fun observeListChange(observer: (List<ListChange<E>>) -> Unit): Disposable =
-        nopDisposable()
+    override fun observeChange(observer: () -> Unit): Disposable = nopDisposable()
 
     override fun toString(): String = listCellToString(this)
 }

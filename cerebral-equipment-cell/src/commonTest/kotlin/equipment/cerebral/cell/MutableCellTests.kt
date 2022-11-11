@@ -2,7 +2,8 @@ package equipment.cerebral.cell
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 interface MutableCellTests<T : Any> : CellTests {
     override fun createProvider(): Provider<T>
@@ -11,18 +12,18 @@ interface MutableCellTests<T : Any> : CellTests {
     fun calls_observers_when_value_is_modified() = test {
         val p = createProvider()
 
-        var observedValue: Any? = null
+        var observerCalled = false
 
-        disposer.add(p.cell.observeChange { newValue ->
-            assertNull(observedValue)
-            observedValue = newValue
+        disposer.add(p.cell.observeChange {
+            assertFalse(observerCalled)
+            observerCalled = true
         })
 
         val newValue = p.createValue()
         p.cell.value = newValue
 
         assertEquals(newValue, p.cell.value)
-        assertEquals(newValue, observedValue)
+        assertTrue(observerCalled)
     }
 
     interface Provider<T : Any> : CellTests.Provider {

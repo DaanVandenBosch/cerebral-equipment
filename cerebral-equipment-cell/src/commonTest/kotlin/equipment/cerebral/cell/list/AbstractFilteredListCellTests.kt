@@ -6,7 +6,12 @@ import equipment.cerebral.cell.MutationManager
 import equipment.cerebral.cell.SimpleCell
 import equipment.cerebral.cell.mutate
 import equipment.cerebral.cell.test.CellTestSuite
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Tests that apply to all filtered list implementations.
@@ -43,13 +48,9 @@ interface AbstractFilteredListCellTests : CellTestSuite {
         val dep = SimpleListCell<Int>(mutableListOf())
         val list = createFilteredListCell(dep, predicate = ImmutableCell { it % 2 == 0 })
         var changes = 0
-        var listChanges = 0
 
         disposer.add(list.observeChange {
             changes++
-        })
-        disposer.add(list.observeListChange {
-            listChanges++
         })
 
         dep.add(1)
@@ -57,14 +58,12 @@ interface AbstractFilteredListCellTests : CellTestSuite {
         dep.add(5)
 
         assertEquals(0, changes)
-        assertEquals(0, listChanges)
 
         dep.add(0)
         dep.add(2)
         dep.add(4)
 
         assertEquals(3, changes)
-        assertEquals(3, listChanges)
     }
 
     @Test
@@ -73,9 +72,9 @@ interface AbstractFilteredListCellTests : CellTestSuite {
         val list = createFilteredListCell(dep, predicate = ImmutableCell { it % 2 == 0 })
         var changes: List<ListChange<Int>>? = null
 
-        disposer.add(list.observeListChange {
+        disposer.add(list.observeChange {
             assertNull(changes)
-            changes = it
+            changes = list.changes.toList()
         })
 
         run {
@@ -117,9 +116,9 @@ interface AbstractFilteredListCellTests : CellTestSuite {
         val list = createFilteredListCell(ImmutableListCell(listOf(1, 2, 3, 4, 5)), predicate)
         var changes: List<ListChange<Int>>? = null
 
-        disposer.add(list.observeListChange {
+        disposer.add(list.observeChange {
             assertNull(changes)
-            changes = it
+            changes = list.changes.toList()
         })
 
         run {
@@ -199,12 +198,9 @@ interface AbstractFilteredListCellTests : CellTestSuite {
 
         disposer.add(list.observeChange {
             assertNull(value)
-            value = it
-        })
-
-        disposer.add(list.observeListChange {
             assertNull(changes)
-            changes = it
+            value = list.value.toList()
+            changes = list.changes.toList()
         })
 
         for (i in 1..3) {
@@ -253,9 +249,9 @@ interface AbstractFilteredListCellTests : CellTestSuite {
         val list = createFilteredListCell(dependency, ImmutableCell { it != y })
         var changes: List<ListChange<String>>? = null
 
-        disposer.add(list.observeListChange {
+        disposer.add(list.observeChange {
             assertNull(changes)
-            changes = it
+            changes = list.changes
         })
 
         assertEquals(listOf(x, z, x, z), list.value)
@@ -329,17 +325,11 @@ interface AbstractFilteredListCellTests : CellTestSuite {
         val filteredList = createFilteredListCell(list, predicate)
         val dependentList = filteredList.filtered { true }
 
-        var value: List<Int>? = null
-        var changes: List<ListChange<Int>>? = null
+        var observerCalled = false
 
         disposer.add(dependentList.observeChange {
-            assertNull(value)
-            value = it
-        })
-
-        disposer.add(dependentList.observeListChange {
-            assertNull(changes)
-            changes = it
+            assertFalse(observerCalled)
+            observerCalled = true
         })
 
         assertEquals(listOf(2, 4, 6), dependentList.value)
@@ -359,30 +349,26 @@ interface AbstractFilteredListCellTests : CellTestSuite {
 
         assertEquals(listOf(1, 3, 5), dependentList.value)
 
-        val v = value
-        assertNotNull(v)
-        assertEquals(listOf(1, 3, 5), v)
+        assertEquals(3, dependentList.changes.size)
 
-        val cs = changes
-        assertNotNull(cs)
-        assertEquals(3, cs.size)
-
-        val c0 = cs[0]
+        val c0 = dependentList.changes[0]
         assertEquals(3, c0.index)
         assertEquals(3, c0.prevSize)
         assertEquals(emptyList(), c0.removed)
         assertEquals(listOf(10), c0.inserted)
 
-        val c1 = cs[1]
+        val c1 = dependentList.changes[1]
         assertEquals(4, c1.index)
         assertEquals(4, c1.prevSize)
         assertEquals(emptyList(), c1.removed)
         assertEquals(listOf(20), c1.inserted)
 
-        val c2 = cs[2]
+        val c2 = dependentList.changes[2]
         assertEquals(0, c2.index)
         assertEquals(5, c2.prevSize)
         assertEquals(listOf(2, 4, 6, 10, 20), c2.removed)
         assertEquals(listOf(1, 3, 5), c2.inserted)
+
+        assertTrue(observerCalled)
     }
 }

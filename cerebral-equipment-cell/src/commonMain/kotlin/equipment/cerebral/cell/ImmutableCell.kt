@@ -14,7 +14,7 @@ internal class ImmutableCell<T>(override val value: T) : Dependency<T>, Cell<T> 
         // Nothing to remove because we don't remember our dependents.
     }
 
-    override fun observeChange(observer: (T) -> Unit): Disposable = nopDisposable()
+    override fun observeChange(observer: () -> Unit): Disposable = nopDisposable()
 
     override fun toString(): String = cellToString(this)
 }

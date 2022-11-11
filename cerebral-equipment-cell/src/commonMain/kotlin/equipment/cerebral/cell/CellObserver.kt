@@ -5,7 +5,7 @@ import equipment.cerebral.cell.disposable.TrackedDisposable
 /**
  * Calls [callback] when one or more cells in [dependencies] change.
  */
-internal class CallbackObserver(
+internal class CellObserver(
     private vararg val dependencies: Cell<*>,
     private val callback: () -> Unit,
 ) : TrackedDisposable(), LeafDependent {

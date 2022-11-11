@@ -44,15 +44,19 @@ fun <E, R> ListCell<E>.listMap(transform: (E) -> R): ListCell<R> =
 fun <E, R> ListCell<E>.fold(initialValue: R, operation: (R, E) -> R): Cell<R> =
     DependentCell(this) { value.fold(initialValue, operation) }
 
+// IMPROVE: Don't loop over entire list on every change.
 fun <E> ListCell<E>.all(predicate: (E) -> Boolean): Cell<Boolean> =
     DependentCell(this) { value.all(predicate) }
 
+// IMPROVE: Don't loop over entire list on every change.
 fun <E> ListCell<E>.any(predicate: (E) -> Boolean): Cell<Boolean> =
     DependentCell(this) { value.any(predicate) }
 
+// IMPROVE: Don't loop over entire list on every change.
 fun <E> ListCell<E>.count(predicate: (E) -> Boolean): Cell<Int> =
     DependentCell(this) { value.count(predicate) }
 
+// IMPROVE: Don't loop over entire list on every change.
 fun <E> ListCell<E>.sumOf(selector: (E) -> Int): Cell<Int> =
     DependentCell(this) { value.sumOf(selector) }
 
@@ -68,9 +72,11 @@ fun <E> ListCell<E>.filteredCell(predicate: (E) -> Cell<Boolean>): ListCell<E> =
 fun <E> ListCell<E>.filteredCell(predicate: Cell<(E) -> Cell<Boolean>>): ListCell<E> =
     FilteredListCell(this, predicate)
 
+// IMPROVE: Only change when first element actually changes.
 fun <E> ListCell<E>.first(): Cell<E> =
     DependentCell(this) { value.first() }
 
+// IMPROVE: Only change when first element actually changes.
 fun <E> ListCell<E>.firstOrNull(): Cell<E?> =
     DependentCell(this) { value.firstOrNull() }
 

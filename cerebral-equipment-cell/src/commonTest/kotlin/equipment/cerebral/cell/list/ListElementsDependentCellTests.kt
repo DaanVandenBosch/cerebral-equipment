@@ -3,8 +3,8 @@ package equipment.cerebral.cell.list
 import equipment.cerebral.cell.SimpleCell
 import equipment.cerebral.cell.test.CellTestSuite
 import kotlin.test.Test
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * Standard tests are done by [ListElementsDependentCellElementChangesTests] and
@@ -23,33 +23,32 @@ class ListElementsDependentCellTests : CellTestSuite {
 
         val cell = ListElementsDependentCell(list) { arrayOf(it) }
 
-        var observedValue: List<SimpleCell<*>>? = null
+        var observerCalled = false
 
         disposer.add(cell.observeChange {
-            assertNull(observedValue)
-            observedValue = it
+            assertFalse(observerCalled)
+            observerCalled = true
         })
 
         // The cell should not call observers when an old element is changed.
         run {
             val removed = list.removeAt(1)
-            observedValue = null
+            observerCalled = false
 
             removed.value += "-1"
 
-            assertNull(observedValue)
+            assertFalse(observerCalled)
         }
 
         // The cell should call observers when any of the current elements are changed.
         list.add(SimpleCell("d"))
 
         for (element in list.value) {
-            observedValue = null
+            observerCalled = false
 
             element.value += "-2"
 
-            val e = observedValue
-            assertNotNull(e)
+            assertTrue(observerCalled)
         }
     }
 }

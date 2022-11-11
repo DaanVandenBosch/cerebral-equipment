@@ -18,5 +18,5 @@ interface Cell<out T> : Dependency<T> {
     /**
      * [observer] will be called whenever this cell changes.
      */
-    fun observeChange(observer: (T) -> Unit): Disposable
+    fun observeChange(observer: () -> Unit): Disposable
 }

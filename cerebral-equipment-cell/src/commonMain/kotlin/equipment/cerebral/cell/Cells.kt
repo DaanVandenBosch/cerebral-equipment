@@ -48,7 +48,9 @@ fun <T> mutableCell(getter: () -> T, setter: (T) -> Unit): MutableCell<T> =
 fun <T> Cell<T>.observe(
     observer: (T) -> Unit,
 ): Disposable {
-    val disposable = observeChange(observer)
+    val disposable = observeChange {
+        observer(value)
+    }
     // Call observer after observeChange to avoid double recomputation in most cells.
     observer(value)
     return disposable
@@ -59,7 +61,7 @@ fun <T1, T2> observe(
     c2: Cell<T2>,
     observer: (T1, T2) -> Unit,
 ): Disposable {
-    val disposable = CallbackObserver(c1, c2) {
+    val disposable = CellObserver(c1, c2) {
         observer(c1.value, c2.value)
     }
     // Call observer after observeChange to avoid double recomputation in most cells.
@@ -73,7 +75,7 @@ fun <T1, T2, T3> observe(
     c3: Cell<T3>,
     observer: (T1, T2, T3) -> Unit,
 ): Disposable {
-    val disposable = CallbackObserver(c1, c2, c3) {
+    val disposable = CellObserver(c1, c2, c3) {
         observer(c1.value, c2.value, c3.value)
     }
     // Call observer after observeChange to avoid double recomputation in most cells.
@@ -88,7 +90,7 @@ fun <T1, T2, T3, T4> observe(
     c4: Cell<T4>,
     observer: (T1, T2, T3, T4) -> Unit,
 ): Disposable {
-    val disposable = CallbackObserver(c1, c2, c3, c4) {
+    val disposable = CellObserver(c1, c2, c3, c4) {
         observer(c1.value, c2.value, c3.value, c4.value)
     }
     // Call observer after observeChange to avoid double recomputation in most cells.
@@ -104,7 +106,7 @@ fun <T1, T2, T3, T4, T5> observe(
     c5: Cell<T5>,
     observer: (T1, T2, T3, T4, T5) -> Unit,
 ): Disposable {
-    val disposable = CallbackObserver(c1, c2, c3, c4, c5) {
+    val disposable = CellObserver(c1, c2, c3, c4, c5) {
         observer(c1.value, c2.value, c3.value, c4.value, c5.value)
     }
     // Call observer after observeChange to avoid double recomputation in most cells.

@@ -5,9 +5,9 @@ import equipment.cerebral.cell.disposable.TrackedDisposable
 /**
  * Calls [callback] when [dependency] changes.
  */
-internal class CallbackChangeObserver<T>(
+internal class SingleCellObserver<T>(
     private val dependency: Cell<T>,
-    private val callback: (T) -> Unit,
+    private val callback: () -> Unit,
 ) : TrackedDisposable(), LeafDependent {
 
     init {
@@ -25,7 +25,7 @@ internal class CallbackChangeObserver<T>(
 
     override fun dependenciesChanged() {
         if (dependency.lastChanged == MutationManager.currentMutationId) {
-            callback(dependency.value)
+            callback()
         }
     }
 }

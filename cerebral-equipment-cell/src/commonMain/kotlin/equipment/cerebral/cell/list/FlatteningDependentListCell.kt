@@ -4,7 +4,6 @@ import equipment.cerebral.cell.AbstractFlatteningDependentCell
 import equipment.cerebral.cell.Cell
 import equipment.cerebral.cell.DependentCell
 import equipment.cerebral.cell.MutationManager
-import equipment.cerebral.cell.disposable.Disposable
 import equipment.cerebral.cell.unsafeAssertNotNull
 
 /**
@@ -58,9 +57,6 @@ internal class FlatteningDependentListCell<E>(
 
             return unsafeAssertNotNull(_notEmpty)
         }
-
-    override fun observeListChange(observer: (List<ListChange<E>>) -> Unit): Disposable =
-        CallbackListChangeObserver(this, observer)
 
     override fun updateValueAndLastChanged(oldValue: List<E>?, newValue: List<E>) {
         // Make a copy because this value is later used as the "removed" field of a list change.
