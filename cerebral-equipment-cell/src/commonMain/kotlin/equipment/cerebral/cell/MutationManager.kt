@@ -66,7 +66,10 @@ object MutationManager {
     fun mutationEnd() {
         assert(mutationNestingLevel > 0) { "No mutation was started." }
 
-        if (mutationNestingLevel == 1) {
+        if (mutationNestingLevel > 1) {
+            dependencyChanging = false
+            mutationNestingLevel--
+        } else {
             assert(!notifyingLeavesOfChanges) { "Already notifying leaf dependents of changes." }
 
             try {
@@ -82,9 +85,6 @@ object MutationManager {
                 invalidatedLeaves.clear()
                 applyDeferredMutations()
             }
-        } else {
-            dependencyChanging = false
-            mutationNestingLevel--
         }
     }
 

@@ -5,6 +5,7 @@ package equipment.cerebral.cell.list
 import equipment.cerebral.cell.Cell
 import equipment.cerebral.cell.DependentCell
 import equipment.cerebral.cell.ImmutableCell
+import equipment.cerebral.cell.disposable.Disposable
 import kotlin.jvm.JvmName
 
 private val EMPTY_LIST_CELL = ImmutableListCell<Nothing>(emptyList())
@@ -27,6 +28,11 @@ fun <E> mutableListCell(vararg elements: E): MutableListCell<E> =
 fun <E> mutableListCell(elements: MutableList<E>): MutableListCell<E> =
     SimpleListCell(elements)
 
+fun <E> ListCell<E>.observeList(
+    observer: (value: List<E>, changes: List<ListChange<E>>) -> Unit,
+): Disposable =
+    observeChange { observer(value, changes) }
+
 /**
  * Returns a cell that changes whenever this list cell is structurally changed or when its
  * individual elements change.
@@ -44,21 +50,121 @@ fun <E, R> ListCell<E>.listMap(transform: (E) -> R): ListCell<R> =
 fun <E, R> ListCell<E>.fold(initialValue: R, operation: (R, E) -> R): Cell<R> =
     DependentCell(this) { value.fold(initialValue, operation) }
 
-// IMPROVE: Don't loop over entire list on every change.
 fun <E> ListCell<E>.all(predicate: (E) -> Boolean): Cell<Boolean> =
-    DependentCell(this) { value.all(predicate) }
+    IncrementallyFoldedCell(
+        this,
+        emptyArray(),
+        { value.all(predicate) },
+        { oldValue, change ->
+            if (oldValue) {
+                change.inserted.all(predicate)
+            } else {
+                value.all(predicate)
+            }
+        },
+    )
 
-// IMPROVE: Don't loop over entire list on every change.
+fun <E> ListCell<E>.all(predicate: Cell<(E) -> Boolean>): Cell<Boolean> =
+    IncrementallyFoldedCell(
+        this,
+        arrayOf(predicate),
+        { value.all(predicate.value) },
+        { oldValue, change ->
+            if (oldValue) {
+                change.inserted.all(predicate.value)
+            } else {
+                value.all(predicate.value)
+            }
+        },
+    )
+
 fun <E> ListCell<E>.any(predicate: (E) -> Boolean): Cell<Boolean> =
-    DependentCell(this) { value.any(predicate) }
+    IncrementallyFoldedCell(
+        this,
+        emptyArray(),
+        { value.any(predicate) },
+        { oldValue, change ->
+            if (oldValue) {
+                value.any(predicate)
+            } else {
+                change.inserted.any(predicate)
+            }
+        },
+    )
 
-// IMPROVE: Don't loop over entire list on every change.
+fun <E> ListCell<E>.any(predicate: Cell<(E) -> Boolean>): Cell<Boolean> =
+    IncrementallyFoldedCell(
+        this,
+        arrayOf(predicate),
+        { value.any(predicate.value) },
+        { oldValue, change ->
+            if (oldValue) {
+                value.any(predicate.value)
+            } else {
+                change.inserted.any(predicate.value)
+            }
+        },
+    )
+
 fun <E> ListCell<E>.count(predicate: (E) -> Boolean): Cell<Int> =
-    DependentCell(this) { value.count(predicate) }
+    IncrementallyFoldedCell(
+        this,
+        emptyArray(),
+        { value.count(predicate) },
+        { oldValue, change ->
+            if (change.largeChange) {
+                value.count(predicate)
+            } else {
+                oldValue - change.removed.count(predicate) + change.inserted.count(predicate)
+            }
+        },
+    )
 
-// IMPROVE: Don't loop over entire list on every change.
+fun <E> ListCell<E>.count(predicate: Cell<(E) -> Boolean>): Cell<Int> =
+    IncrementallyFoldedCell(
+        this,
+        arrayOf(predicate),
+        { value.count(predicate.value) },
+        { oldValue, change ->
+            val p = predicate.value
+
+            if (change.largeChange) {
+                value.count(p)
+            } else {
+                oldValue - change.removed.count(p) + change.inserted.count(p)
+            }
+        },
+    )
+
 fun <E> ListCell<E>.sumOf(selector: (E) -> Int): Cell<Int> =
-    DependentCell(this) { value.sumOf(selector) }
+    IncrementallyFoldedCell(
+        this,
+        emptyArray(),
+        { value.sumOf(selector) },
+        { oldValue, change ->
+            if (change.largeChange) {
+                value.sumOf(selector)
+            } else {
+                oldValue - change.removed.sumOf(selector) + change.inserted.sumOf(selector)
+            }
+        },
+    )
+
+fun <E> ListCell<E>.sumOf(selector: Cell<(E) -> Int>): Cell<Int> =
+    IncrementallyFoldedCell(
+        this,
+        arrayOf(selector),
+        { value.sumOf(selector.value) },
+        { oldValue, change ->
+            val s = selector.value
+
+            if (change.largeChange) {
+                value.sumOf(s)
+            } else {
+                oldValue - change.removed.sumOf(s) + change.inserted.sumOf(s)
+            }
+        },
+    )
 
 fun <E> ListCell<E>.filtered(predicate: (E) -> Boolean): ListCell<E> =
     SimpleFilteredListCell(this, ImmutableCell(predicate))

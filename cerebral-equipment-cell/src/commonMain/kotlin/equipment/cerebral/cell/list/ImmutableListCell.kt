@@ -14,8 +14,8 @@ internal class ImmutableListCell<E>(
 ) : Dependency<List<E>>, ListCell<E> {
 
     override val size: Cell<Int> = cell(elements.size)
-    override val empty: Cell<Boolean> = if (elements.isEmpty()) trueCell() else falseCell()
-    override val notEmpty: Cell<Boolean> = if (elements.isNotEmpty()) trueCell() else falseCell()
+    override val isEmpty: Cell<Boolean> = if (elements.isEmpty()) trueCell() else falseCell()
+    override val isNotEmpty: Cell<Boolean> = if (elements.isNotEmpty()) trueCell() else falseCell()
 
     override val value: List<E> = elements
 

@@ -13,9 +13,9 @@ interface ListCell<out E> : Cell<List<E>> {
 
     val size: Cell<Int>
 
-    val empty: Cell<Boolean>
+    val isEmpty: Cell<Boolean>
 
-    val notEmpty: Cell<Boolean>
+    val isNotEmpty: Cell<Boolean>
 
     operator fun get(index: Int): E = value[index]
 

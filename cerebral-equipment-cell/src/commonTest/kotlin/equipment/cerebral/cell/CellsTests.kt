@@ -1,7 +1,11 @@
 package equipment.cerebral.cell
 
 import equipment.cerebral.cell.test.CellTestSuite
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class CellsTests : CellTestSuite {
     @Test

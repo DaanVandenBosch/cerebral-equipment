@@ -1,6 +1,10 @@
 package equipment.cerebral.cell.list
 
-import equipment.cerebral.cell.*
+import equipment.cerebral.cell.Cell
+import equipment.cerebral.cell.CellWithDependenciesTests
+import equipment.cerebral.cell.SimpleCell
+import equipment.cerebral.cell.cell
+import equipment.cerebral.cell.map
 
 /**
  * In these tests the predicate dependency of the [FilteredListCell] changes.

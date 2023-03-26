@@ -11,8 +11,16 @@ class ListChange<out E>(
     /** The elements that were inserted into the list at [index]. */
     val inserted: List<E>,
 ) {
-    /** True when this change resulted in the removal of all elements from the list. */
+    val newSize: Int get() = prevSize - removed.size + inserted.size
+
+    /** True when this change resulted in the removal of all previous elements from the list. */
     val allRemoved: Boolean get() = removed.size == prevSize
+
+    /**
+     * True when the amount of removals and insertions is greater or equal to the list's new size.
+     * This can often be used to optimize dependency updates.
+     */
+    val largeChange: Boolean get() = removed.size + inserted.size >= newSize
 
     override fun toString(): String =
         "ListChange(index=$index, prevSize=$prevSize, removed=$removed, inserted=$inserted)"

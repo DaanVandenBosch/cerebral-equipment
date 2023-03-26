@@ -28,6 +28,7 @@ internal class FlatteningDependentListCell<E>(
             return _changes
         }
 
+    // IMPROVE: size should only change when necessary.
     private var _size: Cell<Int>? = null
     override val size: Cell<Int>
         get() {
@@ -38,24 +39,26 @@ internal class FlatteningDependentListCell<E>(
             return unsafeAssertNotNull(_size)
         }
 
-    private var _empty: Cell<Boolean>? = null
-    override val empty: Cell<Boolean>
+    // IMPROVE: isEmpty should only change when necessary.
+    private var _isEmpty: Cell<Boolean>? = null
+    override val isEmpty: Cell<Boolean>
         get() {
-            if (_empty == null) {
-                _empty = DependentCell(this) { value.isEmpty() }
+            if (_isEmpty == null) {
+                _isEmpty = DependentCell(this) { value.isEmpty() }
             }
 
-            return unsafeAssertNotNull(_empty)
+            return unsafeAssertNotNull(_isEmpty)
         }
 
-    private var _notEmpty: Cell<Boolean>? = null
-    override val notEmpty: Cell<Boolean>
+    // IMPROVE: isNotEmpty should only change when necessary.
+    private var _isNotEmpty: Cell<Boolean>? = null
+    override val isNotEmpty: Cell<Boolean>
         get() {
-            if (_notEmpty == null) {
-                _notEmpty = DependentCell(this) { value.isNotEmpty() }
+            if (_isNotEmpty == null) {
+                _isNotEmpty = DependentCell(this) { value.isNotEmpty() }
             }
 
-            return unsafeAssertNotNull(_notEmpty)
+            return unsafeAssertNotNull(_isNotEmpty)
         }
 
     override fun updateValueAndLastChanged(oldValue: List<E>?, newValue: List<E>) {
